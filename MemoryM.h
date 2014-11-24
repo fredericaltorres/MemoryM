@@ -47,11 +47,11 @@
 		void (*FreeAll      )();
 		int  (*GetCount     )();
 
-	} MEMORYM_CLASS;
+	} MemoryManagerClass;
 
-	#define MEMORYM MEMORYM_CLASS*
+	#define MemoryManager MemoryManagerClass*
 
-	MEMORYM memoryM(); // Function that return the instance
+	MemoryManager memoryM(); // Function that return the instance
 
 	
 

@@ -1,25 +1,25 @@
+/*
+	MemoryM
+	A Simple memory manager for C.
+
+	(C) Torres Frederic 2014
+	MIT License
+
+	This library was created for PEBBLE Watch development used with the library
+	WinFormebble (https://github.com/fredericaltorres/WinFormebble)
+
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <time.h> 
 #include <string.h>
-
 #include "darray.h"
 #include "MemoryM.h"
 
-/* ============== MemoryM  ==================
-
-A memory manager for C
-*/
-
+// First a dynamic array of MemoryAllocation
 
 DArray*				MemoryAllocation_New()                                              { return darray_init(); }
-void				MemoryAllocation_Push(DArray *array, int size, void *data)			{
-	MemoryAllocation* ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
-	ma->data = data;
-	ma->size = size;
-	MemoryAllocation_PushA(array, ma);
-}
 void				MemoryAllocation_PushA(DArray *array, MemoryAllocation *s)          { darray_push(array, s); }
 MemoryAllocation*	MemoryAllocation_Pop(DArray *array)                                 { return (MemoryAllocation *)darray_pop(array); }
 MemoryAllocation*	MemoryAllocation_Get(DArray *array, int index)                      { return (MemoryAllocation *)darray_get(array, index); }
@@ -27,12 +27,18 @@ void				MemoryAllocation_Set(DArray *array, int index, MemoryAllocation *s) { da
 void				MemoryAllocation_Destructor(DArray *array)                          { darray_free(array); }
 int					MemoryAllocation_GetLength(DArray *array)                           { return array->last; }
 
-MEMORYM_CLASS __localMemoryM; // Single instance allocated
+void MemoryAllocation_Push(DArray *array, int size, void *data) {
+
+	MemoryAllocation* ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
+	ma->data             = data;
+	ma->size             = size;
+	MemoryAllocation_PushA(array, ma);
+}
 
 
+// Second the MemoryManager Class
 
-
-
+MemoryManagerClass __localMemoryM; // Single instance allocated
 
 int __getCount() {
 
@@ -104,7 +110,7 @@ void __Initialize() {
 
 	__localMemoryM._memoryAllocation = MemoryAllocation_New();
 }
-MEMORYM memoryM() {
+MemoryManager memoryM() {
 
 	if (__localMemoryM.NewBool == NULL) {
 
@@ -121,5 +127,3 @@ MEMORYM memoryM() {
 	}
 	return &__localMemoryM;
 }
-
-
