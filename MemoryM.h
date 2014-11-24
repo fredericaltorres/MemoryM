@@ -1,58 +1,52 @@
 #ifndef _MEMORYM_H_
 #define _MEMORYM_H_
 
-	#include <stdlib.h>
-	#include <stdio.h>
-	#include <assert.h>
-	#include <time.h> 
-	#include <string.h>
-	#include "darray.h"
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <assert.h>
+    #include <time.h> 
+    #include <string.h>
+    #include "darray.h"
 
-	/* ============== MemoryM  ==================
+    /* ============== MemoryM  ==================
 
-	A memory manager for C
-	*/
+    A memory manager for C
+    */
 
-	// First implement a dynamic array to store all allocation
-	typedef struct {
+    // First implement a dynamic array to store all allocation
+    typedef struct {
 
-		int size;
-		void * data;
-	} MemoryAllocation;
+	    int size;
+	    void * data;
+    } MemoryAllocation;
 
-	DArray*				MemoryAllocation_New       ();
-	void				MemoryAllocation_PushA     (DArray *array, MemoryAllocation *s);
-	void				MemoryAllocation_Push      (DArray *array, int size, void *data);
-	MemoryAllocation*	MemoryAllocation_Pop       (DArray *array);
-	MemoryAllocation*	MemoryAllocation_Get       (DArray *array, int index);
-	void                MemoryAllocation_Set       (DArray *array, int index, MemoryAllocation *s);
-	void                MemoryAllocation_Destructor(DArray *array);
-	int                 MemoryAllocation_GetLength (DArray *array);
-
-
+    DArray*				MemoryAllocation_New       ();
+    void				MemoryAllocation_PushA     (DArray *array, MemoryAllocation *s);
+    void				MemoryAllocation_Push      (DArray *array, int size, void *data);
+    MemoryAllocation*	MemoryAllocation_Pop       (DArray *array);
+    MemoryAllocation*	MemoryAllocation_Get       (DArray *array, int index);
+    void                MemoryAllocation_Set       (DArray *array, int index, MemoryAllocation *s);
+    void                MemoryAllocation_Destructor(DArray *array);
+    int                 MemoryAllocation_GetLength (DArray *array);
 
 
 
 
-	typedef struct {
+    typedef struct {
 
-		DArray*	_memoryAllocation;
+        DArray*	_memoryAllocation;
 
-		bool*(*NewBool      )();
-		int* (*NewInt       )();
-		char*(*NewString    )(int size);
-		char*(*String       )(char* s);
-		char*(*GetReport    )();
-		int  (*GetMemoryUsed)();
-		void (*FreeAll      )();
-		int  (*GetCount     )();
+        bool*(*NewBool      )();
+        int* (*NewInt       )();
+        char*(*NewString    )(int size);
+        char*(*String       )(char* s);
+        char*(*GetReport    )();
+        int  (*GetMemoryUsed)();
+        void (*FreeAll      )();
+        int  (*GetCount     )();
 
-	} MemoryManagerClass;
+    } MemoryManager;
 
-	#define MemoryManager MemoryManagerClass*
+    MemoryManager* memoryM(); // Function that return the instance
 
-	MemoryManager memoryM(); // Function that return the instance
-
-	
-
-#endif
+    #endif

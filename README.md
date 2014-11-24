@@ -21,12 +21,12 @@ MIT
 
 ```C
     bool * b1 = memoryM()->NewBool();
-	int  * i1 = memoryM()->NewInt();
-	char * s1 = memoryM()->NewString(10);
-	char * s3 = memoryM()->String("Hello World");
+    int  * i1 = memoryM()->NewInt();
+    char * s1 = memoryM()->NewString(10);
+    char * s3 = memoryM()->String("Hello World");
 
-	printf(memoryM()->GetReport()); // The report buffer is allocated using memoryM.
-	printf("Total Used %d", memoryM()->GetMemoryUsed());
+    printf(memoryM()->GetReport()); // The report buffer is allocated using memoryM.
+    printf("Total Used %d", memoryM()->GetMemoryUsed());
 
-	memoryM()->FreeAll();
+    memoryM()->FreeAll();
 ```
