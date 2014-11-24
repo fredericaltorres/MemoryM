@@ -29,21 +29,22 @@
     void                MemoryAllocation_Destructor(DArray *array);
     int                 MemoryAllocation_GetLength (DArray *array);
 
-
+    void MemoryAllocation_FreeAllocation(MemoryAllocation *a);
 
 
     typedef struct {
 
         DArray*	_memoryAllocation;
 
-        bool*(*NewBool      )();
-        int* (*NewInt       )();
-        char*(*NewString    )(int size);
-        char*(*String       )(char* s);
-        char*(*GetReport    )();
-        int  (*GetMemoryUsed)();
-        void (*FreeAll      )();
-        int  (*GetCount     )();
+        bool*(*NewBool       )();
+        int *(*NewInt        )();
+        char*(*NewString     )(int size);
+        char*(*String        )(char* s);
+        char*(*GetReport     )();
+        int  (*GetMemoryUsed )();
+        void (*FreeAll       )();
+        int  (*GetCount      )();
+        bool (*FreeAllocation)(void* data);
 
     } MemoryManager;
 

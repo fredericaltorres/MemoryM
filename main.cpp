@@ -22,8 +22,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	char * s2 = memoryM()->NewString(100);
 	char * s3 = memoryM()->String("Hello World");
 
-	printf(memoryM()->GetReport()); // The report buffer is allocated using memoryM.
+    char* report = memoryM()->GetReport();
+	printf(report); 
+    // The report buffer is allocated using memoryM.
+    // Let's free the report
+    memoryM()->FreeAllocation(report); 
+
 	printf("Total Used %d", memoryM()->GetMemoryUsed());
+
+    
 
 	memoryM()->FreeAll();
 	

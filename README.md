@@ -20,13 +20,21 @@ MIT
 ## Samples
 
 ```C
+    
     bool * b1 = memoryM()->NewBool();
-    int  * i1 = memoryM()->NewInt();
-    char * s1 = memoryM()->NewString(10);
-    char * s3 = memoryM()->String("Hello World");
+	bool * b2 = memoryM()->NewBool();
+	int  * i1 = memoryM()->NewInt();
+	int  * i2 = memoryM()->NewInt();
+	char * s1 = memoryM()->NewString(10);
+	char * s2 = memoryM()->NewString(100);
+	char * s3 = memoryM()->String("Hello World");
 
-    printf(memoryM()->GetReport()); // The report buffer is allocated using memoryM.
-    printf("Total Used %d", memoryM()->GetMemoryUsed());
+    char* report = memoryM()->GetReport();
+	printf(report); 
+    // The report buffer is allocated using memoryM.
+    // Let's free the report
+    memoryM()->FreeAllocation(report); 
 
-    memoryM()->FreeAll();
+	printf("Total Used %d", memoryM()->GetMemoryUsed());
+
 ```

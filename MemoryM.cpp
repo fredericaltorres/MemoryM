@@ -27,6 +27,14 @@ void                MemoryAllocation_Set(DArray *array, int index, MemoryAllocat
 void                MemoryAllocation_Destructor(DArray *array)                          { darray_free(array); }
 int                 MemoryAllocation_GetLength(DArray *array)                           { return array->last; }
 
+void MemoryAllocation_FreeAllocation(MemoryAllocation *a) {  
+
+    if (a->data != NULL) {
+        free(a->data);
+        a->data = NULL;
+    }
+}
+
 void MemoryAllocation_Push(DArray *array, int size, void *data) {
 
     MemoryAllocation* ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
@@ -74,12 +82,31 @@ void __freeAll() {
     // Free all registered memory allocation
     int count = __getCount();
     for (int i = 0; i <= count; i++) {
-
-        MemoryAllocation* ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
-        free(ma->data);
+        
+        MemoryAllocation_FreeAllocation(MemoryAllocation_Get(__localMemoryM._memoryAllocation, i));
     }
     // Free the MemoryAllocation dynamic array
     MemoryAllocation_Destructor(__localMemoryM._memoryAllocation);
+}
+MemoryAllocation* __getMemoryAllocation(void* data) {
+
+    int count = __getCount();
+    for (int i = 0; i <= count; i++) {
+
+        MemoryAllocation * ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
+        if (ma->data == data) {
+            return ma;
+        }
+    }
+    return NULL;
+}
+bool __freeAllocation(void* data) {
+
+    MemoryAllocation* ma = __getMemoryAllocation(data);
+    if (ma != NULL) {
+        MemoryAllocation_FreeAllocation(ma);
+    }
+    return true;
 }
 char * __GetReport() {
 
@@ -113,14 +140,15 @@ MemoryManager * memoryM() {
 
     if (__localMemoryM.NewBool == NULL) {
 
-        __localMemoryM.NewBool       = __newBool;
-        __localMemoryM.NewInt        = __newInt;
-        __localMemoryM.NewString     = __newString;
-        __localMemoryM.FreeAll       = __freeAll;
-        __localMemoryM.GetCount      = __getCount;
-        __localMemoryM.String        = __String;
-        __localMemoryM.GetReport     = __GetReport;
-        __localMemoryM.GetMemoryUsed = __GetMemoryUsed;
+        __localMemoryM.NewBool        = __newBool;
+        __localMemoryM.NewInt         = __newInt;
+        __localMemoryM.NewString      = __newString;
+        __localMemoryM.FreeAll        = __freeAll;
+        __localMemoryM.GetCount       = __getCount;
+        __localMemoryM.String         = __String;
+        __localMemoryM.GetReport      = __GetReport;
+        __localMemoryM.GetMemoryUsed  = __GetMemoryUsed;
+        __localMemoryM.FreeAllocation = __freeAllocation;;
 
         __Initialize();
     }
