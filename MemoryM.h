@@ -8,6 +8,10 @@
     #include <string.h>
     #include "darray.h"
 
+#define MEMORYM_MAX_FORMATED_STRING_SIZE 1024
+#define MEMORYM_TRUE "true"
+#define MEMORYM_FALSE "false"
+
     /* ============== MemoryM  ==================
 
     A memory manager for C
@@ -40,6 +44,7 @@
         int *(*NewInt        )();
         char*(*NewString     )(int size);
         char*(*String        )(char* s);
+        char*(*Format        )(char* s, ...);
         char*(*GetReport     )();
         int  (*GetMemoryUsed )();
         void (*FreeAll       )();
@@ -49,5 +54,8 @@
     } MemoryManager;
 
     MemoryManager* memoryM(); // Function that return the instance
+
+
+    char* __format(char *format, ...);
 
     #endif

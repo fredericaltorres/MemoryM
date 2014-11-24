@@ -14,6 +14,8 @@
 #include <assert.h>
 #include <time.h> 
 #include <string.h>
+#include <stdarg.h>
+
 #include "darray.h"
 #include "MemoryM.h"
 
@@ -70,23 +72,12 @@ char* __newString(int size) {
 
     return (char*)__newAlloc(size + 1);
 }
-char* __String(char *s) {
+char* __string(char *s) {
 
     int size = strlen(s);
     char * newS = __newString(size + 1);
     strcpy(newS, s);
     return newS;
-}
-void __freeAll() {
-
-    // Free all registered memory allocation
-    int count = __getCount();
-    for (int i = 0; i <= count; i++) {
-        
-        MemoryAllocation_FreeAllocation(MemoryAllocation_Get(__localMemoryM._memoryAllocation, i));
-    }
-    // Free the MemoryAllocation dynamic array
-    MemoryAllocation_Destructor(__localMemoryM._memoryAllocation);
 }
 MemoryAllocation* __getMemoryAllocation(void* data) {
 
@@ -108,27 +99,96 @@ bool __freeAllocation(void* data) {
     }
     return true;
 }
-char * __GetReport() {
+
+// http://www.tutorialspoint.com/c_standard_library/c_function_sprintf.htm
+
+char * __format(char *format, ...) {
+
+    char * formated = __newString(MEMORYM_MAX_FORMATED_STRING_SIZE);
+    char tmpBuf[MEMORYM_MAX_FORMATED_STRING_SIZE / 2];
+    va_list argptr;
+    va_start(argptr, format);
+
+    while(*format != '\0') {
+
+        if (*format == '%') {
+            *format++;
+            if (*format == 's') { // string
+                char* s = va_arg(argptr, char *);
+                strcat(formated, s);
+            }
+            else if (*format == 'c') { // character
+                char c = (char)va_arg(argptr, int);
+                sprintf(tmpBuf, "%c", c);
+                strcat(formated, tmpBuf);
+            }
+            else if (*format == 'd') { // integer
+                int d = va_arg(argptr, int);
+                sprintf(tmpBuf, "%d", d);
+                strcat(formated, tmpBuf);
+            }
+            else if (*format == 'f') { // float
+                float d = va_arg(argptr, float);
+                sprintf(tmpBuf, "%f", d);
+                strcat(formated, tmpBuf);
+            }
+            else if (*format == 'b') { // boolean not standard
+                bool d = va_arg(argptr, bool);
+                if (d)
+                    strcpy(tmpBuf, MEMORYM_TRUE);
+                else
+                    strcpy(tmpBuf, MEMORYM_FALSE);
+                strcat(formated, tmpBuf);
+            }
+        }
+        else {
+            char c = format[0];
+            sprintf(tmpBuf, "%c", c);
+            strcat(formated, tmpBuf);
+        }
+        *format++;
+    }
+    va_end(argptr);
+    // Allocate a new string for the exact size of the formated result
+    char* r = __string(formated);
+    __freeAllocation(formated);
+    return r;
+}
+
+
+
+void __freeAll() {
+
+    // Free all registered memory allocation first
+    int count = __getCount();
+    for (int i = 0; i <= count; i++) {
+        
+        MemoryAllocation_FreeAllocation(MemoryAllocation_Get(__localMemoryM._memoryAllocation, i));
+    }
+    // Free the MemoryAllocation dynamic array
+    MemoryAllocation_Destructor(__localMemoryM._memoryAllocation);
+}
+char * __getReport() {
 
     char  buffer2[100];
     char* buffer = __newString(1024 * 4);
-    int   count = __getCount();
+    int   count  = __getCount();
     for (int i = 0; i <= count; i++) {
 
         MemoryAllocation* ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
-        sprintf(buffer2, "[%d] %d - %d\r\n", i, ma->size, ma->data);
+        sprintf(buffer2, "[%3d] %6d - %X\r\n", i, ma->size, ma->data);
         strcat(buffer, buffer2);
     }
     return buffer;
 }
-int __GetMemoryUsed() {
+int __getMemoryUsed() {
 
     int total = 0;
     int count = __getCount();
     for (int i = 0; i <= count; i++) {
 
         MemoryAllocation* ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
-        total += ma->size;
+        total               += ma->size;
     }
     return total;
 }
@@ -145,9 +205,10 @@ MemoryManager * memoryM() {
         __localMemoryM.NewString      = __newString;
         __localMemoryM.FreeAll        = __freeAll;
         __localMemoryM.GetCount       = __getCount;
-        __localMemoryM.String         = __String;
-        __localMemoryM.GetReport      = __GetReport;
-        __localMemoryM.GetMemoryUsed  = __GetMemoryUsed;
+        __localMemoryM.String         = __string;
+        __localMemoryM.Format         = __format;
+        __localMemoryM.GetReport      = __getReport;
+        __localMemoryM.GetMemoryUsed  = __getMemoryUsed;
         __localMemoryM.FreeAllocation = __freeAllocation;;
 
         __Initialize();
