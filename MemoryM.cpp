@@ -15,7 +15,6 @@
 #include <time.h> 
 #include <string.h>
 #include <stdarg.h>
-
 #include "darray.h"
 #include "MemoryM.h"
 
@@ -36,7 +35,6 @@ void MemoryAllocation_FreeAllocation(MemoryAllocation *a) {
         a->data = NULL;
     }
 }
-
 void MemoryAllocation_Push(DArray *array, int size, void *data) {
 
     MemoryAllocation* ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
@@ -53,10 +51,15 @@ int __getCount() {
 
     return MemoryAllocation_GetLength(__localMemoryM._memoryAllocation);
 }
-void* __newAlloc(int size) {
+void* __newAllocOnly(int size) {
 
     void * d = malloc(size);
     memset(d, 0, size);
+    return d;
+}
+void* __newAlloc(int size) {
+
+    void * d = __newAllocOnly(size);
     MemoryAllocation_Push(__localMemoryM._memoryAllocation, size, d);
     return d;
 }
@@ -99,13 +102,17 @@ bool __freeAllocation(void* data) {
     }
     return true;
 }
-
-// http://www.tutorialspoint.com/c_standard_library/c_function_sprintf.htm
-
+//////////////////////////////////////////////////////////////////
+/// __format
+/// Format and allocate a string following the sprintf format
+///     http://www.tutorialspoint.com/c_standard_library/c_function_sprintf.htm
+/// 
+/// For now there is a limit for the formated string of 1k.
+/// Formating padding is not implemented yet.
 char * __format(char *format, ...) {
 
-    char * formated = __newString(MEMORYM_MAX_FORMATED_STRING_SIZE);
-    char tmpBuf[MEMORYM_MAX_FORMATED_STRING_SIZE / 2];
+    char * formated = (char*)__newAllocOnly(MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE + 1);
+    char tmpBuf[(MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE / 2)+1];
     va_list argptr;
     va_start(argptr, format);
 
@@ -113,24 +120,35 @@ char * __format(char *format, ...) {
 
         if (*format == '%') {
             *format++;
-            if (*format == 's') { // string
-                char* s = va_arg(argptr, char *);
-                strcat(formated, s);
+            if (*format == '%') { // string
+                strcat(formated, "%");
+            }
+            else if (*format == 's') { // string
+                char* s = va_arg(argptr, char *); strcat(formated, s);
             }
             else if (*format == 'c') { // character
                 char c = (char)va_arg(argptr, int);
-                sprintf(tmpBuf, "%c", c);
-                strcat(formated, tmpBuf);
+                sprintf(tmpBuf, "%c", c); strcat(formated, tmpBuf);
             }
             else if (*format == 'd') { // integer
                 int d = va_arg(argptr, int);
-                sprintf(tmpBuf, "%d", d);
-                strcat(formated, tmpBuf);
+                sprintf(tmpBuf, "%d", d); strcat(formated, tmpBuf);
+            }
+            else if (*format == 'u') { // un signed integer
+                unsigned int ui = va_arg(argptr, unsigned int);
+                sprintf(tmpBuf, "%u", ui); strcat(formated, tmpBuf);
+            }
+            else if (*format == 'x') { // un signed integer hexa
+                unsigned int ui = va_arg(argptr, unsigned int);
+                sprintf(tmpBuf, "%x", ui); strcat(formated, tmpBuf);
+            }
+            else if (*format == 'X') { // un signed integer hexa uppercase
+                unsigned int ui = va_arg(argptr, unsigned int);
+                sprintf(tmpBuf, "%X", ui); strcat(formated, tmpBuf);
             }
             else if (*format == 'f') { // float
                 float d = va_arg(argptr, float);
-                sprintf(tmpBuf, "%f", d);
-                strcat(formated, tmpBuf);
+                sprintf(tmpBuf, "%f", d); strcat(formated, tmpBuf);
             }
             else if (*format == 'b') { // boolean not standard
                 bool d = va_arg(argptr, bool);
@@ -151,12 +169,9 @@ char * __format(char *format, ...) {
     va_end(argptr);
     // Allocate a new string for the exact size of the formated result
     char* r = __string(formated);
-    __freeAllocation(formated);
+    free(formated);
     return r;
 }
-
-
-
 void __freeAll() {
 
     // Free all registered memory allocation first
@@ -171,7 +186,7 @@ void __freeAll() {
 char * __getReport() {
 
     char  buffer2[100];
-    char* buffer = __newString(1024 * 4);
+    char* buffer = __newString(MEMORYM_MAX_REPORT_SIZE);
     int   count  = __getCount();
     for (int i = 0; i <= count; i++) {
 
@@ -188,13 +203,124 @@ int __getMemoryUsed() {
     for (int i = 0; i <= count; i++) {
 
         MemoryAllocation* ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
-        total               += ma->size;
+        if (ma->data != NULL)
+            total += ma->size;
     }
     return total;
 }
 void __Initialize() {
 
-    __localMemoryM._memoryAllocation = MemoryAllocation_New();
+    __localMemoryM._memoryAllocation  = MemoryAllocation_New();
+    __localMemoryM._contextStackIndex = -1;
+}
+//////////////////////////////////////////////////////////////////
+/// __PushContext
+/// 
+/// Push in the stack the current state of the memory manager
+bool __PushContext() {
+
+    __localMemoryM._contextStackIndex++;
+
+    if (__localMemoryM._contextStackIndex < MEMORYM_STACK_CONTEXT_SIZE) {
+        __localMemoryM._contextStack[__localMemoryM._contextStackIndex] = __getCount();
+        return true;
+    }
+    else {
+        __localMemoryM._contextStackIndex--;
+        return false;
+    }
+}
+//////////////////////////////////////////////////////////////////
+/// __PopContext
+/// 
+/// Restore the state of the memory manager based on the last push
+bool __PopContext() {
+
+    if (__localMemoryM._contextStackIndex > -1) {
+
+        int numberOfAllocToPop = __getCount() - __localMemoryM._contextStack[__localMemoryM._contextStackIndex];
+        __localMemoryM._contextStackIndex--;
+
+        for(int i = 0; i < numberOfAllocToPop; i++) {
+            
+            MemoryAllocation* ma = MemoryAllocation_Pop(__localMemoryM._memoryAllocation); // Remove and return the allocation at the end of the array
+            MemoryAllocation_FreeAllocation(ma); // Free the allocation
+        }
+        return true;
+    }
+    else 
+        return false;
+}
+
+void assertString(char *s1, char *s2) {
+    assert(!strcmp(s1, s2));
+}
+
+//////////////////////////////////////////////////////////////////
+/// __PopContext
+/// 
+/// Restore the state of the memory manager based on the last push
+bool __UnitTests() {
+    
+    // Verify bool allocation
+    bool * b1 = memoryM()->NewBool();
+    bool * b2 = memoryM()->NewBool();
+    assert(2 == memoryM()->GetMemoryUsed());
+
+    // Verify int allocation
+    int  * i1 = memoryM()->NewInt();
+    int  * i2 = memoryM()->NewInt();
+    assert(10 == memoryM()->GetMemoryUsed());
+
+    // Verify string allocation
+    char * s1 = memoryM()->NewString(10);
+    char * s2 = memoryM()->NewString(100);
+    assert(10+11+101 == memoryM()->GetMemoryUsed());
+
+    // Verify allocation of a string with a static string
+    char * helloWorld = "Hello World";
+    char * s3         = memoryM()->String(helloWorld);
+    assertString(helloWorld, s3);
+    assert(10 + 11 + 101 + 13 == memoryM()->GetMemoryUsed());
+    
+    // Verify Format()
+    assertString("b:true, b:false",          memoryM()->Format("b:%b, b:%b", true, false));
+    assertString("n:128, u:128, x:80, X:80", memoryM()->Format("n:%d, u:%u, x:%x, X:%X", 128, 128, 128, 128));
+    assertString("s:ok les filles, a:Yes",   memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes"));
+    assertString("c:A, c:z",                 memoryM()->Format("c:%c, c:%c", 'A','z'));
+    assertString("1%",                       memoryM()->Format("%d%%", 1));
+    
+    // Verify that FreeAllocation() free the memory
+    int a1     = memoryM()->GetMemoryUsed();
+    char * s5  = memoryM()->String(helloWorld);
+    int a2     = memoryM()->GetMemoryUsed();
+                 memoryM()->FreeAllocation(s5);
+    int a3     = memoryM()->GetMemoryUsed();
+    assert(a1 == a3);
+
+    memoryM()->PushContext();
+
+    int v1 = memoryM()->GetCount();
+    int m1 = memoryM()->GetMemoryUsed();
+
+    char * s22 = memoryM()->NewString(100);
+    char* report = memoryM()->GetReport();
+    printf(report);
+    printf("Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
+
+    memoryM()->PopContext(); // Force to free all allocated since previous push
+
+    printf("Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
+
+    int v2 = memoryM()->GetCount();
+    int m2 = memoryM()->GetMemoryUsed();
+
+    assert(v1 == v2);
+    assert(m1 == m2);
+
+    memoryM()->FreeAll();
+
+    return true;
 }
 MemoryManager * memoryM() {
 
@@ -209,7 +335,10 @@ MemoryManager * memoryM() {
         __localMemoryM.Format         = __format;
         __localMemoryM.GetReport      = __getReport;
         __localMemoryM.GetMemoryUsed  = __getMemoryUsed;
-        __localMemoryM.FreeAllocation = __freeAllocation;;
+        __localMemoryM.FreeAllocation = __freeAllocation;
+        __localMemoryM.PushContext    = __PushContext;
+        __localMemoryM.PopContext     = __PopContext;
+        __localMemoryM.UnitTests      = __UnitTests;
 
         __Initialize();
     }

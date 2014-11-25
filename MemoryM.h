@@ -8,9 +8,11 @@
     #include <string.h>
     #include "darray.h"
 
-#define MEMORYM_MAX_FORMATED_STRING_SIZE 1024
+#define MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE 1024
+#define MEMORYM_MAX_REPORT_SIZE (MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE*4)
 #define MEMORYM_TRUE "true"
 #define MEMORYM_FALSE "false"
+#define MEMORYM_STACK_CONTEXT_SIZE 4
 
     /* ============== MemoryM  ==================
 
@@ -39,6 +41,8 @@
     typedef struct {
 
         DArray*	_memoryAllocation;
+        int _contextStack[MEMORYM_STACK_CONTEXT_SIZE];
+        int _contextStackIndex;
 
         bool*(*NewBool       )();
         int *(*NewInt        )();
@@ -50,6 +54,11 @@
         void (*FreeAll       )();
         int  (*GetCount      )();
         bool (*FreeAllocation)(void* data);
+
+        bool(*PushContext)();
+        bool(*PopContext)();
+
+        bool(*UnitTests)();
 
     } MemoryManager;
 
