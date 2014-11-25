@@ -257,9 +257,39 @@ void assertString(char *s1, char *s2) {
 }
 
 //////////////////////////////////////////////////////////////////
-/// __PopContext
-/// 
-/// Restore the state of the memory manager based on the last push
+/// __Samples
+void __Samples() {
+
+    bool * b1 = memoryM()->NewBool();
+    int  * i1 = memoryM()->NewInt();
+
+    // Allocate string
+    char * s1 = memoryM()->NewString(10);    
+    char * s2 = memoryM()->String("Hello World");
+    
+    // Format and allocate string
+    char * s3 = memoryM()->Format("b:%b, b:%b", true, false);
+    char * s4 = memoryM()->Format("n:%d, u:%u, x:%x, X:%X", 128, 128, 128, 128);
+    char * s5 = memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes");
+    char * s6 = memoryM()->Format("c:%c, c:%c", 'A', 'z');
+    char * s7 = memoryM()->Format("%d%%", 1);
+    char * s8 = memoryM()->String("Hello World");
+    memoryM()->FreeAllocation(s8); // Just free an allocation
+
+    // Push/Pop memory context and free all allocation after previous Push
+    memoryM()->PushContext();
+
+        char * s22   = memoryM()->NewString(100);
+        char* report = memoryM()->GetReport(); // Get allocation report
+        printf(report);
+
+    memoryM()->PopContext(); // Force to free all allocated since previous push
+
+    memoryM()->FreeAll();
+}
+
+//////////////////////////////////////////////////////////////////
+/// __UnitTests
 bool __UnitTests() {
     
     // Verify bool allocation
