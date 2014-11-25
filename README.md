@@ -5,6 +5,8 @@ MEMORYM
 
 MemoryM.c
 
+A simple memory manager for C.
+
 This library was created for PEBBLE Watch development to be used with 
 the library [WinFormebble](https://github.com/fredericaltorres/WinFormebble)
 
@@ -22,6 +24,11 @@ MIT
 
 ```C
 
+
+//////////////////////////////////////////////////////////////////
+/// MemoryM.c 
+/// A simple memory manager for C.
+///  memoryM() returns singleton object
 void __Samples() {
 
     bool * b1 = memoryM()->NewBool();
@@ -40,17 +47,17 @@ void __Samples() {
     char * s8 = memoryM()->String("Hello World");
     memoryM()->FreeAllocation(s8); // Just free an allocation
 
-    // Push/Pop memory context and free all allocations after previous Push
+    // Push/Pop memory context and free all allocation after previous Push
     memoryM()->PushContext();
 
         char * s22   = memoryM()->NewString(100);
         char* report = memoryM()->GetReport(); // Get allocation report
         printf(report);
 
-    memoryM()->PopContext(); // Free all allocation since previous push
+    memoryM()->PopContext(); // Force to free all allocated since previous push
 
     memoryM()->FreeAll();
-}    
+}
 	
 
 ```
