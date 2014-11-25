@@ -39,14 +39,14 @@ void __Samples() {
     char * s8 = memoryM()->String("Hello World");
     memoryM()->FreeAllocation(s8); // Just free an allocation
 
-    // Push/Pop memory context and free all allocation after previous Push
+    // Push/Pop memory context and free all allocations after previous Push
     memoryM()->PushContext();
 
         char * s22   = memoryM()->NewString(100);
         char* report = memoryM()->GetReport(); // Get allocation report
         printf(report);
 
-    memoryM()->PopContext(); // Force to free all allocated since previous push
+    memoryM()->PopContext(); // Free all allocation since previous push
 
     memoryM()->FreeAll();
 }    
