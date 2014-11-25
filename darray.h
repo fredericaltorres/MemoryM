@@ -1,11 +1,11 @@
+/*
+darray - Dynamic array for C based on darray.h from https://gist.github.com/dce/5187025
+https://gist.github.com/dce
+David Eisinger
+*/
+
 #ifndef _DARRAY_H_
 #define _DARRAY_H_
-
-/*
-	darray - Dynamic array for C based on darray.h from https://gist.github.com/dce/5187025
-	https://gist.github.com/dce
-	David Eisinger
-*/
 
 typedef struct {
 	void **data;

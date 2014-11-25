@@ -3,7 +3,8 @@ MEMORYM
 
 ## Overview
 
-A Simple memory manager for C.
+MemoryM.c
+
 This library was created for PEBBLE Watch development to be used with 
 the library [WinFormebble](https://github.com/fredericaltorres/WinFormebble)
 

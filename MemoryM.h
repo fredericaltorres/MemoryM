@@ -1,3 +1,14 @@
+/*
+MemoryM
+A Simple memory manager for C.
+
+(C) Torres Frederic 2014
+MIT License
+
+This library was created for PEBBLE Watch development used with the library
+WinFormebble (https://github.com/fredericaltorres/WinFormebble)
+
+*/
 #ifndef _MEMORYM_H_
 #define _MEMORYM_H_
 
