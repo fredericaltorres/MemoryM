@@ -224,7 +224,7 @@ void __freeAll() {
 }
 char * __getReport() {
 
-    char  buffer2[100];
+    char  buffer2[100]; // TODO: Fix this
     char* buffer = __newString(MEMORYM_MAX_REPORT_SIZE);
     int   count  = __getCount();
     for (int i = 0; i <= count; i++) {
@@ -233,6 +233,8 @@ char * __getReport() {
         snprintf(buffer2, sizeof(buffer2) ,"[%3d] %6d - %X\r\n", i, ma->size, (unsigned int)ma->data);
         strcat(buffer, buffer2);
     }
+    snprintf(buffer2, sizeof(buffer2), "Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
+    strcat(buffer, buffer2);
     return buffer;
 }
 int __getMemoryUsed() {
