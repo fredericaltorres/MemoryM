@@ -9,14 +9,17 @@
     WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <time.h> 
-#include <string.h>
-#include <stdarg.h>
-#include "darray.h"
-#include "MemoryM.h"
+
+#if !defined(WINFORMEBBLE)
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <assert.h>
+    #include <time.h> 
+    #include <string.h>
+    #include <stdarg.h>
+    #include "darray.h"
+    #include "MemoryM.h"
+#endif
 
 /*
     snprintf support for Microsoft C compiler
