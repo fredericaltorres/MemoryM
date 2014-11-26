@@ -18,6 +18,40 @@
 #include "darray.h"
 #include "MemoryM.h"
 
+/*
+    snprintf support for Microsoft C compiler
+    http://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010
+*/
+#ifdef _MSC_VER
+
+    #define snprintf c99_snprintf
+
+    inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
+    {
+        int count = -1;
+
+        if (size != 0)
+            count = _vsnprintf_s(str, size, _TRUNCATE, format, ap);
+        if (count == -1)
+            count = _vscprintf(format, ap);
+
+        return count;
+    }
+
+    inline int c99_snprintf(char* str, size_t size, const char* format, ...)
+    {
+        int count;
+        va_list ap;
+
+        va_start(ap, format);
+        count = c99_vsnprintf(str, size, format, ap);
+        va_end(ap);
+
+        return count;
+    }
+
+#endif // _MSC_VER
+
 // First a dynamic array of MemoryAllocation
 
 DArray*             MemoryAllocation_New()                                              { return darray_init(); }
@@ -128,27 +162,28 @@ char * __format(char *format, ...) {
             }
             else if (*format == 'c') { // character
                 char c = (char)va_arg(argptr, int);
-                sprintf(tmpBuf, "%c", c); strcat(formated, tmpBuf);
+                ///sprintf(tmpBuf, "%c", c); 
+                snprintf(tmpBuf, sizeof(tmpBuf), "%c", c); strcat(formated, tmpBuf);
             }
             else if (*format == 'd') { // integer
                 int d = va_arg(argptr, int);
-                sprintf(tmpBuf, "%d", d); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%d", d); strcat(formated, tmpBuf);
             }
             else if (*format == 'u') { // un signed integer
                 unsigned int ui = va_arg(argptr, unsigned int);
-                sprintf(tmpBuf, "%u", ui); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%u", ui); strcat(formated, tmpBuf);
             }
             else if (*format == 'x') { // un signed integer hexa
                 unsigned int ui = va_arg(argptr, unsigned int);
-                sprintf(tmpBuf, "%x", ui); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%x", ui); strcat(formated, tmpBuf);
             }
             else if (*format == 'X') { // un signed integer hexa uppercase
                 unsigned int ui = va_arg(argptr, unsigned int);
-                sprintf(tmpBuf, "%X", ui); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%X", ui); strcat(formated, tmpBuf);
             }
             else if (*format == 'f') { // float
                 float d = va_arg(argptr, float);
-                sprintf(tmpBuf, "%f", d); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%f", d); strcat(formated, tmpBuf);
             }
             else if (*format == 'b') { // boolean not standard
                 bool d = va_arg(argptr, bool);
@@ -161,7 +196,7 @@ char * __format(char *format, ...) {
         }
         else {
             char c = format[0];
-            sprintf(tmpBuf, "%c", c);
+            snprintf(tmpBuf, sizeof(tmpBuf), "%c", c);
             strcat(formated, tmpBuf);
         }
         *format++;
@@ -257,7 +292,9 @@ void assertString(char *s1, char *s2) {
 }
 
 //////////////////////////////////////////////////////////////////
-/// __Samples
+/// MemoryM.c 
+/// A simple memory manager for C.
+///  memoryM() returns singleton object
 void __Samples() {
 
     bool * b1 = memoryM()->NewBool();

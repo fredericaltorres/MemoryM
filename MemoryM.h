@@ -76,6 +76,7 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
     MemoryManager* memoryM(); // Function that return the instance
 
 
-    char* __format(char *format, ...);
+    ///char* __format(char *format, ...);
+
 
     #endif
