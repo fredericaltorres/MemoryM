@@ -29,8 +29,8 @@
 
     #define snprintf c99_snprintf
 
-    inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap)
-    {
+    inline int c99_vsnprintf(char* str, size_t size, const char* format, va_list ap) {
+
         int count = -1;
 
         if (size != 0)
@@ -40,9 +40,8 @@
 
         return count;
     }
+    inline int c99_snprintf(char* str, size_t size, const char* format, ...) {
 
-    inline int c99_snprintf(char* str, size_t size, const char* format, ...)
-    {
         int count;
         va_list ap;
 
@@ -128,7 +127,7 @@ char* __newStringX(int size) {
 char* __newString(char *s) {
 
     int size = strlen(s);
-    char * newS = __newStringX(size + 1);
+    char * newS = __newStringX(size);
     strcpy(newS, s);
     return newS;
 }
@@ -141,7 +140,7 @@ char* __reNewString(char *s, char* previousAllocation) {
     else {
         MemoryAllocation * ma = __getMemoryAllocation(previousAllocation);
         if (ma == NULL) {
-            assert(false); // Allocation not found - something is wrong
+            return NULL;
         }
         else {
             MemoryAllocation_FreeAllocation(ma);
@@ -159,10 +158,13 @@ char* __reNewString(char *s, char* previousAllocation) {
 bool __freeAllocation(void* data) {
 
     MemoryAllocation* ma = __getMemoryAllocation(data);
-    if (ma != NULL) {
-        MemoryAllocation_FreeAllocation(ma);
+    if (ma == NULL)  {
+        return false;
     }
-    return true;
+    else {
+        MemoryAllocation_FreeAllocation(ma);
+        return true;
+    }
 }
 //////////////////////////////////////////////////////////////////
 /// __format
@@ -236,6 +238,22 @@ char * __format(char *format, ...) {
     free(formated);
     return r;
 }
+
+int __free(int n, ...)
+{
+    int error = 0;
+    va_list vl;
+    va_start(vl, n);
+    for(int i = 0; i<n; i++) {
+        void * a = va_arg(vl, void*);
+        bool r = __freeAllocation(a);
+        if (!r)
+            error += 1;
+    }
+    va_end(vl);
+    return error;
+}
+
 void __freeAll() {
 
     // Free all registered memory allocation first
@@ -368,7 +386,7 @@ bool __PopContext() {
         bool * b1 = memoryM()->NewBool();
         bool * b2 = memoryM()->NewBool();
         assert(2 == memoryM()->GetMemoryUsed());
-
+        
         // Verify int allocation
         int  * i1 = memoryM()->NewInt();
         int  * i2 = memoryM()->NewInt();
@@ -383,7 +401,7 @@ bool __PopContext() {
         char * helloWorld = "Hello World";
         char * s3         = memoryM()->NewString(helloWorld);
         assertString(helloWorld, s3);
-        assert(10 + 11 + 101 + 13 == memoryM()->GetMemoryUsed());
+        assert(10 + 11 + 101 + 12 == memoryM()->GetMemoryUsed());
     
         // Verify Format()
         assertString("b:true, b:false",          memoryM()->Format("b:%b, b:%b", true, false));
@@ -431,17 +449,31 @@ bool __PopContext() {
         char * testDataString1 = "0123456789";
         char * testDataString2 = "01234567890123456789";
 
+        // Test ReNewString
         char * s33 = NULL;
         s33 = memoryM()->ReNewString(testDataString1, s33);
-        assert(10, memoryM()->GetMemoryUsed());
+        assert(11 == memoryM()->GetMemoryUsed());
+                
         assertString(testDataString1, s33);
-
         s33 = memoryM()->ReNewString("01234567890123456789", s33);
         assertString(testDataString2, s33);
-        assert(20, memoryM()->GetMemoryUsed());
-        
-        memoryM()->FreeAll();
+        assert(20 == memoryM()->GetMemoryUsed());
 
+        // test Free()
+        // Go back to Context 0 automatically pushed when the singleton is created
+        memoryM()->PopContext();
+        memoryM()->PushContext(); // Re push just in case
+        assert(0 == memoryM()->GetMemoryUsed());
+        
+        s22 = memoryM()->NewString(testDataString1);
+        s33 = memoryM()->ReNewString(testDataString1, NULL);
+        assert(22 == memoryM()->GetMemoryUsed());
+
+        assert(0 == memoryM()->Free(2, s22, s33));
+        assert(1 == memoryM()->Free(1, 4354543));
+        assert(00 == memoryM()->GetMemoryUsed());
+
+        memoryM()->FreeAll();
         return true;
     }
 
@@ -465,6 +497,7 @@ MemoryManager * memoryM() {
         __localMemoryM.FreeAllocation = __freeAllocation;
         __localMemoryM.PushContext    = __PushContext;
         __localMemoryM.PopContext     = __PopContext;
+        __localMemoryM.Free           = __free;
 
         #if !defined(WINFORMEBBLE)
             __localMemoryM.UnitTests  = __UnitTests;

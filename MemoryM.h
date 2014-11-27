@@ -12,12 +12,16 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 #ifndef _MEMORYM_H_
 #define _MEMORYM_H_
 
+#if !defined(WINFORMEBBLE)
+
     #include <stdlib.h>
     #include <stdio.h>
     #include <assert.h>
     #include <time.h> 
     #include <string.h>
     #include "darray.h"
+
+#endif
 
 #define MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE 1024
 #define MEMORYM_MAX_REPORT_SIZE (MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE*4)
@@ -66,7 +70,8 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         void (*FreeAll       )();
         int  (*GetCount      )();
         bool (*FreeAllocation)(void* data);
-
+        int  (*Free)(int n, ...);
+        
         bool(*PushContext)();
         bool(*PopContext)();
 
