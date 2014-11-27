@@ -356,6 +356,7 @@ bool __PopContext() {
         // Allocate string
         char * s1 = memoryM()->NewStringX(10);    
         char * s2 = memoryM()->NewString("Hello World");
+        memoryM()->Free(2, s1, s2);
     
         // Format and allocate string
         char * s3 = memoryM()->Format("b:%b, b:%b", true, false);
