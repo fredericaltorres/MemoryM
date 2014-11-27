@@ -84,9 +84,22 @@ void MemoryAllocation_Push(DArray *array, int size, void *data) {
 
 MemoryManager __localMemoryM; // Single instance allocated
 
+
 int __getCount() {
 
     return MemoryAllocation_GetLength(__localMemoryM._memoryAllocation);
+}
+MemoryAllocation* __getMemoryAllocation(void* data) {
+
+    int count = __getCount();
+    for (int i = 0; i <= count; i++) {
+
+        MemoryAllocation * ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
+        if (ma->data == data) {
+            return ma;
+        }
+    }
+    return NULL;
 }
 void* __newAllocOnly(int size) {
 
@@ -108,29 +121,41 @@ int* __newInt() {
 
     return (int*)__newAlloc(sizeof(int));
 }
-char* __newString(int size) {
+char* __newStringX(int size) {
 
     return (char*)__newAlloc(size + 1);
 }
-char* __string(char *s) {
+char* __newString(char *s) {
 
     int size = strlen(s);
-    char * newS = __newString(size + 1);
+    char * newS = __newStringX(size + 1);
     strcpy(newS, s);
     return newS;
 }
-MemoryAllocation* __getMemoryAllocation(void* data) {
 
-    int count = __getCount();
-    for (int i = 0; i <= count; i++) {
+char* __reNewString(char *s, char* previousAllocation) {
 
-        MemoryAllocation * ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
-        if (ma->data == data) {
-            return ma;
+    if (previousAllocation == NULL) {
+        return __newString(s);
+    }
+    else {
+        MemoryAllocation * ma = __getMemoryAllocation(previousAllocation);
+        if (ma == NULL) {
+            assert(false); // Allocation not found - something is wrong
+        }
+        else {
+            MemoryAllocation_FreeAllocation(ma);
+            int size = strlen(s);
+            char * newS = (char*)__newAllocOnly(size + 1);
+            strcpy(newS, s);
+            ma->size = size;
+            ma->data = newS;
+
+            return newS;
         }
     }
-    return NULL;
 }
+
 bool __freeAllocation(void* data) {
 
     MemoryAllocation* ma = __getMemoryAllocation(data);
@@ -207,7 +232,7 @@ char * __format(char *format, ...) {
     }
     va_end(argptr);
     // Allocate a new string for the exact size of the formated result
-    char* r = __string(formated);
+    char* r = __newString(formated);
     free(formated);
     return r;
 }
@@ -225,7 +250,7 @@ void __freeAll() {
 char * __getReport() {
 
     char  buffer2[100]; // TODO: Fix this
-    char* buffer = __newString(MEMORYM_MAX_REPORT_SIZE);
+    char* buffer = __newStringX(MEMORYM_MAX_REPORT_SIZE);
     int   count  = __getCount();
     for (int i = 0; i <= count; i++) {
 
@@ -253,6 +278,7 @@ void __Initialize() {
 
     __localMemoryM._memoryAllocation  = MemoryAllocation_New();
     __localMemoryM._contextStackIndex = -1;
+    __localMemoryM.PushContext(); // Always save a context a 0
 }
 //////////////////////////////////////////////////////////////////
 /// __PushContext
@@ -310,8 +336,8 @@ bool __PopContext() {
         int  * i1 = memoryM()->NewInt();
 
         // Allocate string
-        char * s1 = memoryM()->NewString(10);    
-        char * s2 = memoryM()->String("Hello World");
+        char * s1 = memoryM()->NewStringX(10);    
+        char * s2 = memoryM()->NewString("Hello World");
     
         // Format and allocate string
         char * s3 = memoryM()->Format("b:%b, b:%b", true, false);
@@ -319,13 +345,13 @@ bool __PopContext() {
         char * s5 = memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes");
         char * s6 = memoryM()->Format("c:%c, c:%c", 'A', 'z');
         char * s7 = memoryM()->Format("%d%%", 1);
-        char * s8 = memoryM()->String("Hello World");
+        char * s8 = memoryM()->NewString("Hello World");
         memoryM()->FreeAllocation(s8); // Just free an allocation
 
         // Push/Pop memory context and free all allocation after previous Push
         memoryM()->PushContext();
 
-            char * s22   = memoryM()->NewString(100);
+            char * s22   = memoryM()->NewStringX(100);
             char* report = memoryM()->GetReport(); // Get allocation report
             printf(report);
 
@@ -349,13 +375,13 @@ bool __PopContext() {
         assert(10 == memoryM()->GetMemoryUsed());
 
         // Verify string allocation
-        char * s1 = memoryM()->NewString(10);
-        char * s2 = memoryM()->NewString(100);
+        char * s1 = memoryM()->NewStringX(10);
+        char * s2 = memoryM()->NewStringX(100);
         assert(10+11+101 == memoryM()->GetMemoryUsed());
 
         // Verify allocation of a string with a static string
         char * helloWorld = "Hello World";
-        char * s3         = memoryM()->String(helloWorld);
+        char * s3         = memoryM()->NewString(helloWorld);
         assertString(helloWorld, s3);
         assert(10 + 11 + 101 + 13 == memoryM()->GetMemoryUsed());
     
@@ -368,7 +394,7 @@ bool __PopContext() {
     
         // Verify that FreeAllocation() free the memory
         int a1     = memoryM()->GetMemoryUsed();
-        char * s5  = memoryM()->String(helloWorld);
+        char * s5  = memoryM()->NewString(helloWorld);
         int a2     = memoryM()->GetMemoryUsed();
                      memoryM()->FreeAllocation(s5);
         int a3     = memoryM()->GetMemoryUsed();
@@ -379,7 +405,7 @@ bool __PopContext() {
         int v1 = memoryM()->GetCount();
         int m1 = memoryM()->GetMemoryUsed();
 
-        char * s22 = memoryM()->NewString(100);
+        char * s22 = memoryM()->NewStringX(100);
         char* report = memoryM()->GetReport();
         printf(report);
         printf("Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
@@ -394,6 +420,26 @@ bool __PopContext() {
         assert(v1 == v2);
         assert(m1 == m2);
 
+        // Go back to Context 0 automatically pushed when the singleton is created
+        memoryM()->PopContext(); 
+        v2 = memoryM()->GetCount();
+        m2 = memoryM()->GetMemoryUsed();
+        assert(-1 == v2);
+        assert(0 == m2);
+        memoryM()->PushContext(); // Re push just in case
+
+        char * testDataString1 = "0123456789";
+        char * testDataString2 = "01234567890123456789";
+
+        char * s33 = NULL;
+        s33 = memoryM()->ReNewString(testDataString1, s33);
+        assert(10, memoryM()->GetMemoryUsed());
+        assertString(testDataString1, s33);
+
+        s33 = memoryM()->ReNewString("01234567890123456789", s33);
+        assertString(testDataString2, s33);
+        assert(20, memoryM()->GetMemoryUsed());
+        
         memoryM()->FreeAll();
 
         return true;
@@ -408,9 +454,11 @@ MemoryManager * memoryM() {
         __localMemoryM.NewBool        = __newBool;
         __localMemoryM.NewInt         = __newInt;
         __localMemoryM.NewString      = __newString;
+        __localMemoryM.ReNewString    = __reNewString;
         __localMemoryM.FreeAll        = __freeAll;
         __localMemoryM.GetCount       = __getCount;
-        __localMemoryM.String         = __string;
+        __localMemoryM.NewStringX     = __newStringX;
+
         __localMemoryM.Format         = __format;
         __localMemoryM.GetReport      = __getReport;
         __localMemoryM.GetMemoryUsed  = __getMemoryUsed;

@@ -57,8 +57,9 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 
         bool*(*NewBool       )();
         int *(*NewInt        )();
-        char*(*NewString     )(int size);
-        char*(*String        )(char* s);
+        char*(*NewStringX    )(int size);
+        char*(*NewString     )(char* s);
+        char*(*ReNewString   )(char* s, char* previousAllocation);
         char*(*Format        )(char* s, ...);
         char*(*GetReport     )();
         int  (*GetMemoryUsed )();
