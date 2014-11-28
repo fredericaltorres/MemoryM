@@ -30,45 +30,46 @@ MIT
 
 ```C
 
+       
         // Allocate a new boolean
-        bool*(*NewBool       )();
+        bool* NewBool();
         // Allocate a new int
-        int *(*NewInt        )();
+        int * NewInt();
         // Allocate a new string for len size (do not add the extra char for the \0)
-        char*(*NewStringLen  )(int size);
+        char* NewStringLen(int size);
         // Allocate a new string identical to the string passed
-        char*(*NewString     )(char* s);
+        char* NewString(char* s);
         // Re allocate a new string identical to the string passed, but re use the internal MemoryAllocation object
-        char*(*ReNewString   )(char* s, char* previousAllocation);
+        char* ReNewString(char* s, char* previousAllocation);
         // Format using sprintf, but return a string allocated by MemoryM
-        char*(*Format        )(char* s, ...);
+        char* Format(char* s, ...);
         // Return a string allocated by MemoryM, presenting the current memory allocation
-        char*(*GetReport     )();
+        char* GetReport();
         // Return how many total byte are allocated
-        int  (*GetMemoryUsed )();
+        int   GetMemoryUsed();
         // Free all
-        void (*FreeAll       )();
+        void  FreeAll();
         // Return the total number of allocation created
-        int  (*GetCount      )();
+        int   GetCount();
         // Free a specific allocation
-        bool (*FreeAllocation)(void* data);
+        bool  FreeAllocation(void* data);
         // Free multiple specific allocation
-        int  (*Free)(int n, ...);
+        int   Free(int n, ...);
         
         // Allocate a new DateTime set to now
-        struct tm *(*NewDate)();
+        struct tm * NewDate();
         // Allocate a new DateTime set to a specific date
-        struct tm *(*NewDateTime)(int year, int month, int day, int hour, int minutes, int seconds);
+        struct tm * NewDateTime(int year, int month, int day, int hour, int minutes, int seconds);
         // Format the Date using strftime(), but return a string allocated by MemoryM
-        char*(*FormatDateTime)(struct tm *date, char* format);
+        char* FormatDateTime(struct tm *date, char* format);
         // Re allocate and re format the Date using strftime(), but re use the internal MemoryAllocation object
-        char*(*ReFormatDateTime)(struct tm *date, char* format, char * previousAllocation);
+        char* ReFormatDateTime(struct tm *date, char* format, char * previousAllocation);
         
         // Mark the state of the memory manager
-        bool(*PushContext)();
+        bool PushContext();
         // Restore the state of the memory manager to the previous Push
-        bool(*PopContext)();
-        
+        bool PopContext();
+
 ```
 
 ## Samples
