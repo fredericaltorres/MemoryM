@@ -3,10 +3,9 @@ MEMORYM
 
 ## Overview
 
-MemoryM.c
-
 A simple memory manager for C.
-Provide a singleton object that 
+
+The library provides a singleton object that 
 - Manage memory allocation for int, bool, string (char*) and Datetime (struct tm).
 - Manage formating result
 - And more...

@@ -411,8 +411,10 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
     ///  memoryM() returns singleton object
     void __Samples() {
 
-        bool * b1 = memoryM()->NewBool();
-        int  * i1 = memoryM()->NewInt();
+        bool * b1                    = memoryM()->NewBool();
+        int  * i1                    = memoryM()->NewInt();
+        struct tm * now              = memoryM()->NewDate();
+        struct tm * specificDateTime = memoryM()->NewDateTime(2014, 11, 22, 1, 2, 3);
 
         // Allocate string
         char * s1 = memoryM()->NewStringLen(10);    
@@ -425,9 +427,15 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         char * s5 = memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes");
         char * s6 = memoryM()->Format("c:%c, c:%c", 'A', 'z');
         char * s7 = memoryM()->Format("%d%%", 1);
-        char * s8 = memoryM()->NewString("Hello World");
-        memoryM()->FreeAllocation(s8); // Just free an allocation
 
+        // Format date and time
+        char * f1 = memoryM()->FormatDateTime(specificDateTime, "%a - %b %d");
+        f1 = memoryM()->ReFormatDateTime(specificDateTime, "%Y-%m-%d", f1);
+
+        char * s8 = memoryM()->NewString("Hello World");
+        memoryM()->FreeAllocation(s8); // Free one allocation
+        memoryM()->Free(2, s1, s2);    // Free multiple allocation
+        
         // Push/Pop memory context and free all allocation after previous Push
         memoryM()->PushContext();
 
