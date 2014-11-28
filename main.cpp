@@ -17,6 +17,7 @@
 int _tmain(int argc, _TCHAR* argv[])
 {
     memoryM()->UnitTests();
+    memoryM()->FreeAll();
 	return 0;
 }
 

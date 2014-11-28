@@ -61,7 +61,7 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 
         bool*(*NewBool       )();
         int *(*NewInt        )();
-        char*(*NewStringX    )(int size);
+        char*(*NewStringLen  )(int size);
         char*(*NewString     )(char* s);
         char*(*ReNewString   )(char* s, char* previousAllocation);
         char*(*Format        )(char* s, ...);
@@ -71,6 +71,12 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         int  (*GetCount      )();
         bool (*FreeAllocation)(void* data);
         int  (*Free)(int n, ...);
+        
+        struct tm *(*NewDate)();
+        struct tm *(*NewDateTime)(int year, int month, int day, int hour, int minutes, int seconds);
+        
+        char*(*FormatTime)(char* format);
+        char*(*ReFormatTime)(char* format, char previousAllocation);
         
         bool(*PushContext)();
         bool(*PopContext)();

@@ -120,18 +120,17 @@ int* __newInt() {
 
     return (int*)__newAlloc(sizeof(int));
 }
-char* __newStringX(int size) {
+char* __newStringLen(int size) {
 
     return (char*)__newAlloc(size + 1);
 }
 char* __newString(char *s) {
 
     int size = strlen(s);
-    char * newS = __newStringX(size);
+    char * newS = __newStringLen(size);
     strcpy(newS, s);
     return newS;
 }
-
 char* __reNewString(char *s, char* previousAllocation) {
 
     if (previousAllocation == NULL) {
@@ -144,12 +143,11 @@ char* __reNewString(char *s, char* previousAllocation) {
         }
         else {
             MemoryAllocation_FreeAllocation(ma);
-            int size = strlen(s);
-            char * newS = (char*)__newAllocOnly(size + 1);
+            int size    = strlen(s);
+            char * newS = (char*)__newAllocOnly(size+1);
             strcpy(newS, s);
-            ma->size = size;
-            ma->data = newS;
-
+            ma->size    = size+1;
+            ma->data    = newS;
             return newS;
         }
     }
@@ -268,7 +266,7 @@ void __freeAll() {
 char * __getReport() {
 
     char  buffer2[100]; // TODO: Fix this
-    char* buffer = __newStringX(MEMORYM_MAX_REPORT_SIZE);
+    char* buffer = __newStringLen(MEMORYM_MAX_REPORT_SIZE);
     int   count  = __getCount();
     for (int i = 0; i <= count; i++) {
 
@@ -336,8 +334,40 @@ bool __PopContext() {
     else 
         return false;
 }
+struct tm * __newDate() {
 
+    time_t temp            = time(NULL);  // Get a tm structure -- not re entrant
+    struct tm * tick_time  = localtime(&temp);
+    struct tm * tick_time2 = (struct tm *)__newAlloc(sizeof(struct tm));
 
+    memcpy(&tick_time2, tick_time, sizeof(struct tm));
+    return tick_time2;
+}
+
+struct tm * __newDateTime(int year, int month, int day, int hour, int minutes, int seconds) {
+
+    struct tm * d = __newDate();
+
+    d->tm_sec    = seconds;
+    d->tm_min    = minutes;
+    d->tm_hour   = hour;
+    d->tm_min    = minutes;
+    d->tm_mday   = day;
+    d->tm_mon    = month - 1;
+    d->tm_year   = year - 1900;
+    //d->tm_wday = ?;
+    //d->tm_yday = ?;
+    d->tm_isdst  = 0;
+
+    return d;
+}
+
+char* __formatTime(char* format) {
+    return NULL;
+}
+char* __reFormatTime(char* format, char previousAllocation) {
+    return NULL;
+}
 #if !defined(WINFORMEBBLE)
 
     void assertString(char *s1, char *s2) {
@@ -354,7 +384,7 @@ bool __PopContext() {
         int  * i1 = memoryM()->NewInt();
 
         // Allocate string
-        char * s1 = memoryM()->NewStringX(10);    
+        char * s1 = memoryM()->NewStringLen(10);    
         char * s2 = memoryM()->NewString("Hello World");
         memoryM()->Free(2, s1, s2);
     
@@ -370,7 +400,7 @@ bool __PopContext() {
         // Push/Pop memory context and free all allocation after previous Push
         memoryM()->PushContext();
 
-            char * s22   = memoryM()->NewStringX(100);
+        char * s22 = memoryM()->NewStringLen(100);
             char* report = memoryM()->GetReport(); // Get allocation report
             printf(report);
 
@@ -379,102 +409,156 @@ bool __PopContext() {
         memoryM()->FreeAll();
     }
 
-    //////////////////////////////////////////////////////////////////
-    /// __UnitTests
-    bool __UnitTests() {
-    
-        // Verify bool allocation
-        bool * b1 = memoryM()->NewBool();
+    // *************************************************
+    // UnitTests
+    // *************************************************
+
+    bool __UnitTests_Basic() {
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+        
+        bool * b1 = memoryM()->NewBool(); // Verify bool allocation
         bool * b2 = memoryM()->NewBool();
         assert(2 == memoryM()->GetMemoryUsed());
         
-        // Verify int allocation
-        int  * i1 = memoryM()->NewInt();
+        int  * i1 = memoryM()->NewInt(); // Verify int allocation
         int  * i2 = memoryM()->NewInt();
         assert(10 == memoryM()->GetMemoryUsed());
+        
+        char * s1 = memoryM()->NewStringLen(10); // Verify string allocation
+        char * s2 = memoryM()->NewStringLen(100);
+        assert(10 + 11 + 101 == memoryM()->GetMemoryUsed());
 
-        // Verify string allocation
-        char * s1 = memoryM()->NewStringX(10);
-        char * s2 = memoryM()->NewStringX(100);
-        assert(10+11+101 == memoryM()->GetMemoryUsed());
-
-        // Verify allocation of a string with a static string
-        char * helloWorld = "Hello World";
-        char * s3         = memoryM()->NewString(helloWorld);
+        char * helloWorld = "Hello World"; // Verify allocation of a string with a static string
+        char * s3 = memoryM()->NewString(helloWorld);
         assertString(helloWorld, s3);
         assert(10 + 11 + 101 + 12 == memoryM()->GetMemoryUsed());
-    
-        // Verify Format()
-        assertString("b:true, b:false",          memoryM()->Format("b:%b, b:%b", true, false));
-        assertString("n:128, u:128, x:80, X:80", memoryM()->Format("n:%d, u:%u, x:%x, X:%X", 128, 128, 128, 128));
-        assertString("s:ok les filles, a:Yes",   memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes"));
-        assertString("c:A, c:z",                 memoryM()->Format("c:%c, c:%c", 'A','z'));
-        assertString("1%",                       memoryM()->Format("%d%%", 1));
-    
-        // Verify that FreeAllocation() free the memory
-        int a1     = memoryM()->GetMemoryUsed();
-        char * s5  = memoryM()->NewString(helloWorld);
-        int a2     = memoryM()->GetMemoryUsed();
-                     memoryM()->FreeAllocation(s5);
-        int a3     = memoryM()->GetMemoryUsed();
-        assert(a1 == a3);
-
-        memoryM()->PushContext();
-
-        int v1 = memoryM()->GetCount();
-        int m1 = memoryM()->GetMemoryUsed();
-
-        char * s22 = memoryM()->NewStringX(100);
-        char* report = memoryM()->GetReport();
-        printf(report);
-        printf("Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
-
-        memoryM()->PopContext(); // Force to free all allocated since previous push
-
-        printf("Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
-
-        int v2 = memoryM()->GetCount();
-        int m2 = memoryM()->GetMemoryUsed();
-
-        assert(v1 == v2);
-        assert(m1 == m2);
-
-        // Go back to Context 0 automatically pushed when the singleton is created
-        memoryM()->PopContext(); 
-        v2 = memoryM()->GetCount();
-        m2 = memoryM()->GetMemoryUsed();
-        assert(-1 == v2);
-        assert(0 == m2);
-        memoryM()->PushContext(); // Re push just in case
-
-        char * testDataString1 = "0123456789";
-        char * testDataString2 = "01234567890123456789";
-
-        // Test ReNewString
-        char * s33 = NULL;
-        s33 = memoryM()->ReNewString(testDataString1, s33);
-        assert(11 == memoryM()->GetMemoryUsed());
-                
-        assertString(testDataString1, s33);
-        s33 = memoryM()->ReNewString("01234567890123456789", s33);
-        assertString(testDataString2, s33);
-        assert(20 == memoryM()->GetMemoryUsed());
+        
+        int a1    = memoryM()->GetMemoryUsed(); // Verify that FreeAllocation() free the memory
+        char * s5 = memoryM()->NewString(helloWorld);
+        int a2    = memoryM()->GetMemoryUsed();
+        memoryM()->FreeAllocation(s5);
+        assert(a1 == memoryM()->GetMemoryUsed());
 
         // test Free()
         // Go back to Context 0 automatically pushed when the singleton is created
         memoryM()->PopContext();
         memoryM()->PushContext(); // Re push just in case
-        assert(0 == memoryM()->GetMemoryUsed());
-        
-        s22 = memoryM()->NewString(testDataString1);
-        s33 = memoryM()->ReNewString(testDataString1, NULL);
-        assert(22 == memoryM()->GetMemoryUsed());
 
+        assert(0 == memoryM()->GetMemoryUsed());
+
+        char * testDataString1 = "0123456789";
+        int testDataString1Len = strlen(testDataString1) + 1;
+        char * s22 = memoryM()->NewString(testDataString1);
+        char * s33 = memoryM()->ReNewString(testDataString1, NULL);
+        assert(testDataString1Len*2 == memoryM()->GetMemoryUsed());
+        
         assert(0 == memoryM()->Free(2, s22, s33));
         assert(1 == memoryM()->Free(1, 4354543));
         assert(00 == memoryM()->GetMemoryUsed());
 
-        memoryM()->FreeAll();
+        return true;
+    }
+
+    bool __UnitTests_PushPopContext() {
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+
+        char * testDataString1 = "0123456789";
+        int testDataString1Len = strlen(testDataString1) + 1;
+
+        char *s22 = memoryM()->NewString(testDataString1);
+        assert(testDataString1Len == memoryM()->GetMemoryUsed());
+
+        bool * b1 = memoryM()->NewBool();
+        bool * b2 = memoryM()->NewBool();
+        int  * i1 = memoryM()->NewInt();
+        int  * i2 = memoryM()->NewInt();
+
+        int totalAllocated = memoryM()->GetMemoryUsed();
+        assert(21 == memoryM()->GetMemoryUsed());
+
+        memoryM()->PushContext(); // Re push just in case
+
+            char *s33 = memoryM()->ReNewString(testDataString1, NULL);
+            assert(totalAllocated + testDataString1Len == memoryM()->GetMemoryUsed());
+
+        memoryM()->PopContext();
+        assert(totalAllocated == memoryM()->GetMemoryUsed());
+
+        memoryM()->PopContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+
+        memoryM()->PushContext();
+
+        return true;
+    }
+
+    bool __UnitTests_ReNewString() {
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+        
+        char * testDataString1 = "0123456789";
+        int testDataString1Len = strlen(testDataString1) + 1;
+        char * testDataString2 = "01234567890123456789";
+        int testDataString2Len = strlen(testDataString2) + 1;
+
+        // Test ReNewString
+        char * s33 = NULL;
+        s33 = memoryM()->ReNewString(testDataString1, s33);
+        assert(testDataString1Len == memoryM()->GetMemoryUsed());
+        assertString(testDataString1, s33);
+
+        s33 = memoryM()->ReNewString("01234567890123456789", s33);
+        assertString(testDataString2, s33);
+        int a = memoryM()->GetMemoryUsed();
+        assert(testDataString2Len == memoryM()->GetMemoryUsed());
+
+        s33 = memoryM()->ReNewString(testDataString1, s33);
+        assert(testDataString1Len == memoryM()->GetMemoryUsed());
+        assertString(testDataString1, s33);
+
+        return true;
+    }
+
+    bool __UnitTests_StringFormat() {
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+
+        // Verify allocation of a string with a static string
+        char * helloWorld = "Hello World";
+        char * s3 = memoryM()->NewString(helloWorld);
+        assertString(helloWorld, s3);
+        assert(10 + 11 + 101 + 12 == memoryM()->GetMemoryUsed());
+
+        // Verify Format()
+        assertString("b:true, b:false", memoryM()->Format("b:%b, b:%b", true, false));
+        assertString("n:128, u:128, x:80, X:80", memoryM()->Format("n:%d, u:%u, x:%x, X:%X", 128, 128, 128, 128));
+        assertString("s:ok les filles, a:Yes", memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes"));
+        assertString("c:A, c:z", memoryM()->Format("c:%c, c:%c", 'A', 'z'));
+        assertString("1%", memoryM()->Format("%d%%", 1));
+        
+        return true;
+    }
+
+    //////////////////////////////////////////////////////////////////
+    /// __UnitTests
+    bool __UnitTests() {
+
+        if (!__UnitTests_Basic())          return false;
+        if (!__UnitTests_ReNewString())    return false;
+        
+        if (!__UnitTests_PushPopContext()) return false;
+        if (!__UnitTests_StringFormat())   return false;
+
         return true;
     }
 
@@ -490,7 +574,7 @@ MemoryManager * memoryM() {
         __localMemoryM.ReNewString    = __reNewString;
         __localMemoryM.FreeAll        = __freeAll;
         __localMemoryM.GetCount       = __getCount;
-        __localMemoryM.NewStringX     = __newStringX;
+        __localMemoryM.NewStringLen   = __newStringLen;
 
         __localMemoryM.Format         = __format;
         __localMemoryM.GetReport      = __getReport;
@@ -500,6 +584,11 @@ MemoryManager * memoryM() {
         __localMemoryM.PopContext     = __PopContext;
         __localMemoryM.Free           = __free;
 
+        __localMemoryM.NewDate        = __newDate;
+        __localMemoryM.NewDateTime    = __newDateTime;
+        __localMemoryM.FormatTime     = __formatTime;
+        __localMemoryM.ReFormatTime   = __reFormatTime;
+
         #if !defined(WINFORMEBBLE)
             __localMemoryM.UnitTests  = __UnitTests;
         #endif
@@ -508,3 +597,12 @@ MemoryManager * memoryM() {
     }
     return &__localMemoryM;
 }
+
+/*
+
+http://api.thingspeak.com/update?key=N7RV4GSNJWDTTNT6&field1=1111&field2=2222
+http://api.thingspeak.com/channels/19324/feed.json?key=N7RV4GSNJWDTTNT6
+
+http://api.openweathermap.org/data/2.5/weather?lat=42.414747044171925&lon=-71.50293471631109
+
+*/
