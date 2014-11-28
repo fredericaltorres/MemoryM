@@ -75,8 +75,8 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         struct tm *(*NewDate)();
         struct tm *(*NewDateTime)(int year, int month, int day, int hour, int minutes, int seconds);
         
-        char*(*FormatTime)(char* format);
-        char*(*ReFormatTime)(char* format, char previousAllocation);
+        char*(*FormatDateTime)(struct tm *date, char* format);
+        char*(*ReFormatDateTime)(struct tm *date, char* format, char * previousAllocation);
         
         bool(*PushContext)();
         bool(*PopContext)();

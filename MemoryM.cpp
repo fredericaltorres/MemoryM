@@ -152,7 +152,6 @@ char* __reNewString(char *s, char* previousAllocation) {
         }
     }
 }
-
 bool __freeAllocation(void* data) {
 
     MemoryAllocation* ma = __getMemoryAllocation(data);
@@ -251,7 +250,6 @@ int __free(int n, ...)
     va_end(vl);
     return error;
 }
-
 void __freeAll() {
 
     // Free all registered memory allocation first
@@ -340,7 +338,7 @@ struct tm * __newDate() {
     struct tm * tick_time  = localtime(&temp);
     struct tm * tick_time2 = (struct tm *)__newAlloc(sizeof(struct tm));
 
-    memcpy(&tick_time2, tick_time, sizeof(struct tm));
+    memcpy(tick_time2, tick_time, sizeof(struct tm));
     return tick_time2;
 }
 
@@ -362,16 +360,49 @@ struct tm * __newDateTime(int year, int month, int day, int hour, int minutes, i
     return d;
 }
 
-char* __formatTime(char* format) {
-    return NULL;
+static char MemoryM_Buffer[32];
+
+char* __formatDateTime(struct tm *date, char* format) {
+
+    strftime(MemoryM_Buffer, sizeof(MemoryM_Buffer), format, date);
+    return __newString(MemoryM_Buffer);
 }
-char* __reFormatTime(char* format, char previousAllocation) {
-    return NULL;
+
+char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocation) {
+    if (previousAllocation == NULL) {
+        return __formatDateTime(date, format);
+    }
+    else {
+        MemoryAllocation * ma = __getMemoryAllocation(previousAllocation);
+        if (ma == NULL) {
+            return NULL;
+        }
+        else {
+            MemoryAllocation_FreeAllocation(ma);
+            strftime(MemoryM_Buffer, sizeof(MemoryM_Buffer), format, date);
+            int size    = strlen(MemoryM_Buffer);
+            char * newS = (char*)__newAllocOnly(size + 1);
+            strcpy(newS, MemoryM_Buffer);
+            ma->size    = size + 1;
+            ma->data    = newS;
+            return newS;
+        }
+
+    }
 }
 #if !defined(WINFORMEBBLE)
 
     void assertString(char *s1, char *s2) {
         assert(!strcmp(s1, s2));
+    }
+    void assertDate(struct tm * date, int year, int month, int day, int hour, int minutes, int seconds) {
+
+        assert((year - 1900) == date->tm_year);
+        assert(month         == date->tm_mon + 1); // Month start a 0
+        assert(day           == date->tm_mday);
+        assert(hour          == date->tm_hour);
+        assert(minutes       == date->tm_min);
+        assert(seconds       == date->tm_sec);
     }
 
     //////////////////////////////////////////////////////////////////
@@ -462,6 +493,34 @@ char* __reFormatTime(char* format, char previousAllocation) {
         return true;
     }
 
+    bool __UnitTests_BasicDate() {
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+
+        int tmLen = sizeof(struct tm);
+        struct tm * now = memoryM()->NewDate();
+
+        struct tm * codeCamp22Date = memoryM()->NewDateTime(2014, 11, 22, 1, 2, 3);
+        assertDate(codeCamp22Date, 2014, 11, 22, 1, 2, 3);
+        
+        int a = memoryM()->GetMemoryUsed();
+        assert(tmLen *2 == memoryM()->GetMemoryUsed());
+
+        char * f1 = NULL;
+        f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%a - %b %d", f1);
+        assertString("Thu - Nov 22", f1);
+
+        f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%Y-%m-%d", f1);
+        assertString("2014-11-22", f1);
+
+        f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%X", f1);
+        assertString("01:02:03", f1);
+
+        return true;
+    }
+
     bool __UnitTests_PushPopContext() {
 
         memoryM()->PopContext(); // Restore memory to initialization state
@@ -535,9 +594,10 @@ char* __reFormatTime(char* format, char previousAllocation) {
 
         // Verify allocation of a string with a static string
         char * helloWorld = "Hello World";
-        char * s3 = memoryM()->NewString(helloWorld);
+        int helloWorldLen = strlen(helloWorld)+1;
+        char * s3         = memoryM()->NewString(helloWorld);
         assertString(helloWorld, s3);
-        assert(10 + 11 + 101 + 12 == memoryM()->GetMemoryUsed());
+        assert(helloWorldLen == memoryM()->GetMemoryUsed());
 
         // Verify Format()
         assertString("b:true, b:false", memoryM()->Format("b:%b, b:%b", true, false));
@@ -555,9 +615,9 @@ char* __reFormatTime(char* format, char previousAllocation) {
 
         if (!__UnitTests_Basic())          return false;
         if (!__UnitTests_ReNewString())    return false;
-        
         if (!__UnitTests_PushPopContext()) return false;
         if (!__UnitTests_StringFormat())   return false;
+        if (!__UnitTests_BasicDate())      return false;
 
         return true;
     }
@@ -568,26 +628,26 @@ MemoryManager * memoryM() {
 
     if (__localMemoryM.NewBool == NULL) {
 
-        __localMemoryM.NewBool        = __newBool;
-        __localMemoryM.NewInt         = __newInt;
-        __localMemoryM.NewString      = __newString;
-        __localMemoryM.ReNewString    = __reNewString;
-        __localMemoryM.FreeAll        = __freeAll;
-        __localMemoryM.GetCount       = __getCount;
-        __localMemoryM.NewStringLen   = __newStringLen;
+        __localMemoryM.NewBool          = __newBool;
+        __localMemoryM.NewInt           = __newInt;
+        __localMemoryM.NewString        = __newString;
+        __localMemoryM.ReNewString      = __reNewString;
+        __localMemoryM.FreeAll          = __freeAll;
+        __localMemoryM.GetCount         = __getCount;
+        __localMemoryM.NewStringLen     = __newStringLen;
 
-        __localMemoryM.Format         = __format;
-        __localMemoryM.GetReport      = __getReport;
-        __localMemoryM.GetMemoryUsed  = __getMemoryUsed;
-        __localMemoryM.FreeAllocation = __freeAllocation;
-        __localMemoryM.PushContext    = __PushContext;
-        __localMemoryM.PopContext     = __PopContext;
-        __localMemoryM.Free           = __free;
+        __localMemoryM.Format           = __format;
+        __localMemoryM.GetReport        = __getReport;
+        __localMemoryM.GetMemoryUsed    = __getMemoryUsed;
+        __localMemoryM.FreeAllocation   = __freeAllocation;
+        __localMemoryM.PushContext      = __PushContext;
+        __localMemoryM.PopContext       = __PopContext;
+        __localMemoryM.Free             = __free;
 
-        __localMemoryM.NewDate        = __newDate;
-        __localMemoryM.NewDateTime    = __newDateTime;
-        __localMemoryM.FormatTime     = __formatTime;
-        __localMemoryM.ReFormatTime   = __reFormatTime;
+        __localMemoryM.NewDate          = __newDate;
+        __localMemoryM.NewDateTime      = __newDateTime;
+        __localMemoryM.FormatDateTime   = __formatDateTime;
+        __localMemoryM.ReFormatDateTime = __reFormatDateTime;
 
         #if !defined(WINFORMEBBLE)
             __localMemoryM.UnitTests  = __UnitTests;
