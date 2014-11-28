@@ -7,6 +7,10 @@ MemoryM.c
 
 A simple memory manager for C.
 
+Manage memory allocation for int, bool, string (char*) and Datetime (struct tm).
+Also manage formating data.
+
+
 This library was created for PEBBLE Watch development to be used with 
 the library [WinFormebble](https://github.com/fredericaltorres/WinFormebble)
 
