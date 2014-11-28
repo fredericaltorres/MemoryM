@@ -79,10 +79,14 @@ void MemoryAllocation_Push(DArray *array, int size, void *data) {
     MemoryAllocation_PushA(array, ma);
 }
 
-// Second the MemoryManager Class
+// *** Single instance allocated *** 
+MemoryManager __localMemoryM; 
 
-MemoryManager __localMemoryM; // Single instance allocated
+// Internal pre allocated buffer used to
+// - Format date before being allocated by MemoryM
+static char __MemoryM__InternalBuffer[32];
 
+// *** The methods of the singleton object ***
 
 int __getCount() {
 
@@ -152,7 +156,7 @@ char* __reNewString(char *s, char* previousAllocation) {
         }
     }
 }
-bool __freeAllocation(void* data) {
+bool __free(void* data) {
 
     MemoryAllocation* ma = __getMemoryAllocation(data);
     if (ma == NULL)  {
@@ -235,15 +239,13 @@ char * __format(char *format, ...) {
     free(formated);
     return r;
 }
-
-int __free(int n, ...)
-{
+int __freeMultiple(int n, ...) {
     int error = 0;
     va_list vl;
     va_start(vl, n);
     for(int i = 0; i<n; i++) {
         void * a = va_arg(vl, void*);
-        bool r = __freeAllocation(a);
+        bool r = __free(a);
         if (!r)
             error += 1;
     }
@@ -262,18 +264,26 @@ void __freeAll() {
     MemoryAllocation_Destructor(__localMemoryM._memoryAllocation);
 }
 char * __getReport() {
+    
+    int footerSize = 25 + 2;
+    int buffer2Len = 25 + 2;
+    char* tbuffer  = (char*)__newAllocOnly(buffer2Len + 1); // Temp buffer for the allocation
+    int   count    = __getCount();
+    char* buffer   = __newStringLen((buffer2Len*count) + footerSize); // pre compute the size of the report
 
-    char  buffer2[100]; // TODO: Fix this
-    char* buffer = __newStringLen(MEMORYM_MAX_REPORT_SIZE);
-    int   count  = __getCount();
     for (int i = 0; i <= count; i++) {
 
-        MemoryAllocation* ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
-        snprintf(buffer2, sizeof(buffer2) ,"[%3d] %6d - %X\r\n", i, ma->size, (unsigned int)ma->data);
-        strcat(buffer, buffer2);
+        MemoryAllocation * ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
+        snprintf(tbuffer, buffer2Len, "[%3d] %5d - %X\r\n", i, ma->size, (unsigned int)ma->data);
+        strcat(buffer, tbuffer);
     }
-    snprintf(buffer2, sizeof(buffer2), "Total Used:%d, Count:%d\r\n", memoryM()->GetMemoryUsed(), memoryM()->GetCount());
-    strcat(buffer, buffer2);
+    // Remark: Format the footer in the tBuffer which has to be extended to 25 to be able to format the 
+    // the footer causing waste of memory when we format each entry above. We allocate a specific
+    // buffer just to format the footer
+    snprintf(tbuffer, buffer2Len, "Used:%5d, Count:%5d\r\n", memoryM()->GetMemoryUsed(), count);
+
+    strcat(buffer, tbuffer);
+    free(tbuffer); // Free temp buffer
     return buffer;
 }
 int __getMemoryUsed() {
@@ -360,12 +370,12 @@ struct tm * __newDateTime(int year, int month, int day, int hour, int minutes, i
     return d;
 }
 
-static char MemoryM_Buffer[32];
+
 
 char* __formatDateTime(struct tm *date, char* format) {
 
-    strftime(MemoryM_Buffer, sizeof(MemoryM_Buffer), format, date);
-    return __newString(MemoryM_Buffer);
+    strftime(__MemoryM__InternalBuffer, sizeof(__MemoryM__InternalBuffer), format, date);
+    return __newString(__MemoryM__InternalBuffer);
 }
 
 char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocation) {
@@ -379,10 +389,10 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         }
         else {
             MemoryAllocation_FreeAllocation(ma);
-            strftime(MemoryM_Buffer, sizeof(MemoryM_Buffer), format, date);
-            int size    = strlen(MemoryM_Buffer);
+            strftime(__MemoryM__InternalBuffer, sizeof(__MemoryM__InternalBuffer), format, date);
+            int size = strlen(__MemoryM__InternalBuffer);
             char * newS = (char*)__newAllocOnly(size + 1);
-            strcpy(newS, MemoryM_Buffer);
+            strcpy(newS, __MemoryM__InternalBuffer);
             ma->size    = size + 1;
             ma->data    = newS;
             return newS;
@@ -419,7 +429,7 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         // Allocate string
         char * s1 = memoryM()->NewStringLen(10);    
         char * s2 = memoryM()->NewString("Hello World");
-        memoryM()->Free(2, s1, s2);
+        memoryM()->FreeMultiple(2, s1, s2);
     
         // Format and allocate string
         char * s3 = memoryM()->Format("b:%b, b:%b", true, false);
@@ -433,16 +443,14 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         f1 = memoryM()->ReFormatDateTime(specificDateTime, "%Y-%m-%d", f1);
 
         char * s8 = memoryM()->NewString("Hello World");
-        memoryM()->FreeAllocation(s8); // Free one allocation
-        memoryM()->Free(2, s1, s2);    // Free multiple allocation
+        memoryM()->Free(s8); // Free one allocation
+        memoryM()->FreeMultiple(2, s1, s2);    // Free multiple allocation
         
         // Push/Pop memory context and free all allocation after previous Push
         memoryM()->PushContext();
-
         char * s22 = memoryM()->NewStringLen(100);
             char* report = memoryM()->GetReport(); // Get allocation report
             printf(report);
-
         memoryM()->PopContext(); // Force to free all allocated since previous push
 
         memoryM()->FreeAll();
@@ -478,8 +486,12 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         int a1    = memoryM()->GetMemoryUsed(); // Verify that FreeAllocation() free the memory
         char * s5 = memoryM()->NewString(helloWorld);
         int a2    = memoryM()->GetMemoryUsed();
-        memoryM()->FreeAllocation(s5);
+        memoryM()->Free(s5);
         assert(a1 == memoryM()->GetMemoryUsed());
+        
+        memoryM()->PushContext(); // Re push just in case
+        printf("Memory Report:\r\n%s", memoryM()->GetReport());
+        memoryM()->PopContext();
 
         // test Free()
         // Go back to Context 0 automatically pushed when the singleton is created
@@ -494,9 +506,11 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         char * s33 = memoryM()->ReNewString(testDataString1, NULL);
         assert(testDataString1Len*2 == memoryM()->GetMemoryUsed());
         
-        assert(0 == memoryM()->Free(2, s22, s33));
-        assert(1 == memoryM()->Free(1, 4354543));
+        assert(0 == memoryM()->FreeMultiple(2, s22, s33));
+        assert(1 == memoryM()->FreeMultiple(1, 4354543));
         assert(00 == memoryM()->GetMemoryUsed());
+
+        
 
         return true;
     }
@@ -621,12 +635,11 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
     /// __UnitTests
     bool __UnitTests() {
 
-        if (!__UnitTests_Basic())          return false;
-        if (!__UnitTests_ReNewString())    return false;
-        if (!__UnitTests_PushPopContext()) return false;
-        if (!__UnitTests_StringFormat())   return false;
-        if (!__UnitTests_BasicDate())      return false;
-
+        __UnitTests_Basic();
+        __UnitTests_ReNewString();
+        __UnitTests_PushPopContext();
+        __UnitTests_StringFormat();
+        __UnitTests_BasicDate();
         return true;
     }
 
@@ -647,10 +660,10 @@ MemoryManager * memoryM() {
         __localMemoryM.Format           = __format;
         __localMemoryM.GetReport        = __getReport;
         __localMemoryM.GetMemoryUsed    = __getMemoryUsed;
-        __localMemoryM.FreeAllocation   = __freeAllocation;
+        __localMemoryM.Free             = __free;
         __localMemoryM.PushContext      = __PushContext;
         __localMemoryM.PopContext       = __PopContext;
-        __localMemoryM.Free             = __free;
+        __localMemoryM.FreeMultiple     = __freeMultiple;
 
         __localMemoryM.NewDate          = __newDate;
         __localMemoryM.NewDateTime      = __newDateTime;

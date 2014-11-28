@@ -26,52 +26,7 @@ This library was created for PEBBLE Watch development to be used with the librar
 
 MIT
 
-## Api
 
-```C
-   
-    // Allocate a new boolean
-    bool* NewBool();
-    // Allocate a new int
-    int * NewInt();
-    // Allocate a new string for len size (do not add the extra char for the \0)
-    char* NewStringLen(int size);
-    // Allocate a new string identical to the string passed
-    char* NewString(char* s);
-    // Re allocate a new string identical to the string passed, but re use the internal MemoryAllocation object
-    char* ReNewString(char* s, char* previousAllocation);
-    // Allocate a new DateTime set to now
-    struct tm * NewDate();
-    // Allocate a new DateTime set to a specific date
-    struct tm * NewDateTime(int year, int month, int day, int hour, int minutes, int seconds);
-
-    // Format using sprintf, but return a string allocated by MemoryM
-    char* Format(char* s, ...);
-    // Format the Date using strftime(), but return a string allocated by MemoryM
-    char* FormatDateTime(struct tm *date, char* format);
-    // Re allocate and re format the Date using strftime(), but re use the internal MemoryAllocation object
-    char* ReFormatDateTime(struct tm *date, char* format, char * previousAllocation);
-
-    // Free a specific allocation
-    bool FreeAllocation(void* data);
-    // Free multiple specific allocation
-    int Free(int n, ...);
-
-    // Return a string allocated by MemoryM, presenting the current memory allocation
-    char* GetReport();
-    // Return how many total byte are allocated
-    int   GetMemoryUsed();
-    // Free all
-    void  FreeAll();
-    // Return the total number of allocation created
-    int   GetCount();
-    
-    // Mark the state of the memory manager
-    bool PushContext();
-    // Restore the state of the memory manager to the previous Push
-    bool PopContext();
-
-```
 
 ## Samples
 
@@ -119,5 +74,52 @@ MIT
         memoryM()->FreeAll();
     }
 
+
+```
+
+## Api
+
+```C
+   
+    // Allocate a new boolean
+    bool* NewBool();
+    // Allocate a new int
+    int * NewInt();
+    // Allocate a new string for len size (do not add the extra char for the \0)
+    char* NewStringLen(int size);
+    // Allocate a new string identical to the string passed
+    char* NewString(char* s);
+    // Re allocate a new string identical to the string passed, but re use the internal MemoryAllocation object
+    char* ReNewString(char* s, char* previousAllocation);
+    // Allocate a new DateTime set to now
+    struct tm * NewDate();
+    // Allocate a new DateTime set to a specific date
+    struct tm * NewDateTime(int year, int month, int day, int hour, int minutes, int seconds);
+
+    // Format using sprintf, but return a string allocated by MemoryM
+    char* Format(char* s, ...);
+    // Format the Date using strftime(), but return a string allocated by MemoryM
+    char* FormatDateTime(struct tm *date, char* format);
+    // Re allocate and re format the Date using strftime(), but re use the internal MemoryAllocation object
+    char* ReFormatDateTime(struct tm *date, char* format, char * previousAllocation);
+
+    // Free a specific allocation
+    bool FreeAllocation(void* data);
+    // Free multiple specific allocation
+    int Free(int n, ...);
+
+    // Return a string allocated by MemoryM, presenting the current memory allocation
+    char* GetReport();
+    // Return how many total byte are allocated
+    int   GetMemoryUsed();
+    // Free all
+    void  FreeAll();
+    // Return the total number of allocation created
+    int   GetCount();
+    
+    // Mark the state of the memory manager
+    bool PushContext();
+    // Restore the state of the memory manager to the previous Push
+    bool PopContext();
 
 ```

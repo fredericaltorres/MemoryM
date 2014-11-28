@@ -24,7 +24,7 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 #endif
 
 #define MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE 1024
-#define MEMORYM_MAX_REPORT_SIZE (MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE*4)
+#define MEMORYM_MAX_REPORT_SIZE 1024
 #define MEMORYM_TRUE "true"
 #define MEMORYM_FALSE "false"
 #define MEMORYM_STACK_CONTEXT_SIZE 4
@@ -81,9 +81,9 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         char*(*ReFormatDateTime)(struct tm *date, char* format, char * previousAllocation);
 
         // Free a specific allocation
-        bool(*FreeAllocation)(void* data);
+        bool(*Free)(void* data);
         // Free multiple specific allocation
-        int(*Free)(int n, ...);
+        int(*FreeMultiple)(int n, ...);
 
         // Return a string allocated by MemoryM, presenting the current memory allocation
         char*(*GetReport)();
