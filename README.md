@@ -6,19 +6,22 @@ MEMORYM
 MemoryM.c
 
 A simple memory manager for C.
+Provide a singleton object that 
+- Manage memory allocation for int, bool, string (char*) and Datetime (struct tm).
+- Manage formating result
+- And more...
 
-Manage memory allocation for int, bool, string (char*) and Datetime (struct tm).
-Also manage formating data.
+See samples below
 
-
-This library was created for PEBBLE Watch development to be used with 
-the library [WinFormebble](https://github.com/fredericaltorres/WinFormebble)
+This library was created for PEBBLE Watch development to be used with the library [WinFormebble](https://github.com/fredericaltorres/WinFormebble)
 
 ## Dependencies
 
 - ***darray*** library
     Dynamic array for C based on darray.h from https://gist.github.com/dce/5187025 - David Eisinger
     Modified by Frederic Torres 2014
+
+    This library is already included in the source code
 
 ## License
 
