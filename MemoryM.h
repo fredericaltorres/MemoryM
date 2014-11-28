@@ -68,6 +68,9 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         char*(*NewString)(char* s);
         // Re allocate a new string identical to the string passed, but re use the internal MemoryAllocation object
         char*(*ReNewString)(char* s, char* previousAllocation);
+        // Concat the string s to the string previousAllocation already managed by MemoryM 
+        char*(*StringConcat)(char* s, char* previousAllocation);
+        
         // Allocate a new DateTime set to now
         struct tm *(*NewDate)();
         // Allocate a new DateTime set to a specific date

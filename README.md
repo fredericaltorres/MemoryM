@@ -33,7 +33,7 @@ MIT
 ```C
     //////////////////////////////////////////////////////////////////
     /// MemoryM 
-    /// A simple memory manager for C
+    /// A simple memory manager for C.
     /// The function memoryM() returns the singleton object
     void __Samples() {
 
@@ -43,9 +43,11 @@ MIT
         struct tm * specificDateTime = memoryM()->NewDateTime(2014, 11, 22, 1, 2, 3);
 
         // Allocate string
-        char * s1 = memoryM()->NewStringLen(10);    
-        char * s2 = memoryM()->NewString("Hello World");
-        memoryM()->Free(2, s1, s2);
+        char * s1  = memoryM()->NewStringLen(10);    
+        char * s2  = memoryM()->NewString("Hello World");
+        char * s22 = memoryM()->StringConcat(" Joe", s2);
+        
+        memoryM()->FreeMultiple(2, s1, s2, s22);
     
         // Format and allocate string
         char * s3 = memoryM()->Format("b:%b, b:%b", true, false);
@@ -59,16 +61,14 @@ MIT
         f1 = memoryM()->ReFormatDateTime(specificDateTime, "%Y-%m-%d", f1);
 
         char * s8 = memoryM()->NewString("Hello World");
-        memoryM()->FreeAllocation(s8); // Free one allocation
-        memoryM()->Free(2, s1, s2);    // Free multiple allocation
+        memoryM()->Free(s8); // Free one allocation
+        memoryM()->FreeMultiple(2, s1, s2);    // Free multiple allocation
         
         // Push/Pop memory context and free all allocation after previous Push
         memoryM()->PushContext();
-
-        char * s22 = memoryM()->NewStringLen(100);
+        char * s222 = memoryM()->NewStringLen(100);
             char* report = memoryM()->GetReport(); // Get allocation report
             printf(report);
-
         memoryM()->PopContext(); // Force to free all allocated since previous push
 
         memoryM()->FreeAll();
@@ -91,6 +91,10 @@ MIT
     char* NewString(char* s);
     // Re allocate a new string identical to the string passed, but re use the internal MemoryAllocation object
     char* ReNewString(char* s, char* previousAllocation);
+    // Concat the string s to the string previousAllocation already managed by MemoryM 
+    char*(*StringConcat)(char* s, char* previousAllocation);
+
+
     // Allocate a new DateTime set to now
     struct tm * NewDate();
     // Allocate a new DateTime set to a specific date

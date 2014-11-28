@@ -135,6 +135,34 @@ char* __newString(char *s) {
     strcpy(newS, s);
     return newS;
 }
+char* __concatString(char* s, char* previousAllocation) {
+
+    if (previousAllocation == NULL) {
+        return __newString(s);
+    }
+    else {
+        MemoryAllocation * ma = __getMemoryAllocation(previousAllocation);
+        if (ma == NULL) {
+            return NULL;
+        }
+        else {
+
+            char * currentS = (char*)ma->data;
+            int currentSize = ma->size; // Already contain the extra char for \0
+            int newSize     = currentSize + strlen(s);
+            char * newS     = (char*)__newAllocOnly(newSize);
+
+            strcpy(newS, currentS);
+            strcat(newS, s);
+
+            MemoryAllocation_FreeAllocation(ma);
+
+            ma->size = newSize;
+            ma->data = newS;
+            return newS;
+        }
+    }
+}
 char* __reNewString(char *s, char* previousAllocation) {
 
     if (previousAllocation == NULL) {
@@ -427,9 +455,11 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         struct tm * specificDateTime = memoryM()->NewDateTime(2014, 11, 22, 1, 2, 3);
 
         // Allocate string
-        char * s1 = memoryM()->NewStringLen(10);    
-        char * s2 = memoryM()->NewString("Hello World");
-        memoryM()->FreeMultiple(2, s1, s2);
+        char * s1  = memoryM()->NewStringLen(10);    
+        char * s2  = memoryM()->NewString("Hello World");
+        char * s22 = memoryM()->StringConcat(" Joe", s2);
+        
+        memoryM()->FreeMultiple(2, s1, s2, s22);
     
         // Format and allocate string
         char * s3 = memoryM()->Format("b:%b, b:%b", true, false);
@@ -448,7 +478,7 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         
         // Push/Pop memory context and free all allocation after previous Push
         memoryM()->PushContext();
-        char * s22 = memoryM()->NewStringLen(100);
+        char * s222 = memoryM()->NewStringLen(100);
             char* report = memoryM()->GetReport(); // Get allocation report
             printf(report);
         memoryM()->PopContext(); // Force to free all allocated since previous push
@@ -627,7 +657,19 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         assertString("s:ok les filles, a:Yes", memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes"));
         assertString("c:A, c:z", memoryM()->Format("c:%c, c:%c", 'A', 'z'));
         assertString("1%", memoryM()->Format("%d%%", 1));
-        
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+        assert(0 == memoryM()->GetMemoryUsed());
+                
+        char * s4 = NULL;
+        s4 = memoryM()->StringConcat(helloWorld, s4);
+        assert(helloWorldLen == memoryM()->GetMemoryUsed());
+        assertString(helloWorld, s4);
+        s4 = memoryM()->StringConcat(helloWorld, s4);
+        assertString("Hello WorldHello World", s4);
+        assert(helloWorldLen *2-1== memoryM()->GetMemoryUsed());
+
         return true;
     }
 
@@ -656,6 +698,7 @@ MemoryManager * memoryM() {
         __localMemoryM.FreeAll          = __freeAll;
         __localMemoryM.GetCount         = __getCount;
         __localMemoryM.NewStringLen     = __newStringLen;
+        __localMemoryM.StringConcat     = __concatString;
 
         __localMemoryM.Format           = __format;
         __localMemoryM.GetReport        = __getReport;
@@ -669,6 +712,8 @@ MemoryManager * memoryM() {
         __localMemoryM.NewDateTime      = __newDateTime;
         __localMemoryM.FormatDateTime   = __formatDateTime;
         __localMemoryM.ReFormatDateTime = __reFormatDateTime;
+        
+            
 
         #if !defined(WINFORMEBBLE)
             __localMemoryM.UnitTests  = __UnitTests;
