@@ -406,9 +406,9 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
     }
 
     //////////////////////////////////////////////////////////////////
-    /// MemoryM.c 
+    /// MemoryM 
     /// A simple memory manager for C.
-    ///  memoryM() returns singleton object
+    /// The function memoryM() returns the singleton object
     void __Samples() {
 
         bool * b1                    = memoryM()->NewBool();

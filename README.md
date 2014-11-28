@@ -29,11 +29,10 @@ MIT
 ## Samples
 
 ```C
-
     //////////////////////////////////////////////////////////////////
-    /// MemoryM.c 
-    /// A simple memory manager for C.
-    ///  memoryM() returns singleton object
+    /// MemoryM 
+    /// A simple memory manager for C
+    /// The function memoryM() returns the singleton object
     void __Samples() {
 
         bool * b1                    = memoryM()->NewBool();
