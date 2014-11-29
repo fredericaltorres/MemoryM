@@ -149,12 +149,19 @@ char* __newStringLen(int size) {
 }
 char* __newString(char *s) {
 
+    if (s == NULL)
+        return __newStringLen(0);
+
     int size = strlen(s);
     char * newS = __newStringLen(size);
     strcpy(newS, s);
     return newS;
 }
 char* __concatString(char* s, char* previousAllocation) {
+
+    if (s == NULL) { // Support to concat NULL
+        return previousAllocation;
+    }
 
     if (previousAllocation == NULL) {
         return __newString(s);
@@ -205,6 +212,9 @@ char* __reNewString(char *s, char* previousAllocation) {
 }
 bool __free(void* data) {
 
+    if (data == NULL) // Allow to free NULL pointer
+        return true;
+
     MemoryAllocation* ma = __getMemoryAllocation(data);
     if (ma == NULL)  {
         return false;
@@ -213,6 +223,33 @@ bool __free(void* data) {
         MemoryAllocation_FreeAllocation(ma);
         return true;
     }
+}
+int __freeMultiple(int n, ...) {
+
+    int error = 0;
+    va_list vl;
+    va_start(vl, n);
+    for (int i = 0; i<n; i++) {
+        void * a = va_arg(vl, void*);
+        if (a != NULL) {
+            bool r = __free(a);
+            if (!r)
+                error += 1;
+        }
+    }
+    va_end(vl);
+    return error;
+}
+void __freeAll() {
+
+    // Free all registered memory allocation first
+    int count = __getCount();
+    for (int i = 0; i <= count; i++) {
+
+        MemoryAllocation_FreeAllocation(MemoryAllocation_Get(__localMemoryM._memoryAllocation, i));
+    }
+    // Free the MemoryAllocation dynamic array
+    MemoryAllocation_Destructor(__localMemoryM._memoryAllocation);
 }
 //////////////////////////////////////////////////////////////////
 /// __format
@@ -290,30 +327,7 @@ char * __format(char *format, ...) {
     va_end(argptr);
     return formated;
 }
-int __freeMultiple(int n, ...) {
-    int error = 0;
-    va_list vl;
-    va_start(vl, n);
-    for(int i = 0; i<n; i++) {
-        void * a = va_arg(vl, void*);
-        bool r = __free(a);
-        if (!r)
-            error += 1;
-    }
-    va_end(vl);
-    return error;
-}
-void __freeAll() {
 
-    // Free all registered memory allocation first
-    int count = __getCount();
-    for (int i = 0; i <= count; i++) {
-        
-        MemoryAllocation_FreeAllocation(MemoryAllocation_Get(__localMemoryM._memoryAllocation, i));
-    }
-    // Free the MemoryAllocation dynamic array
-    MemoryAllocation_Destructor(__localMemoryM._memoryAllocation);
-}
 char * __getReport() {
     
     int footerSize = 25 + 2;
@@ -616,7 +630,7 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         assertString("2014-11-22", f1);
 
         f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%a - %b %d", f1);
-        assertString("Fri - Nov 22", f1);
+        assertString("Sat - Nov 22", f1);
               
         f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%X", f1);
         assertString("01:02:03", f1);
@@ -708,6 +722,9 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         assertString("s:ok les filles, a:Yes", memoryM()->Format("s:%s, a:%s", "ok les filles", "Yes"));
         assertString("c:A, c:z", memoryM()->Format("c:%c, c:%c", 'A', 'z'));
         assertString("1%", memoryM()->Format("%d%%", 1));
+
+        char * nullString = NULL;
+        assertString("b:", memoryM()->Format("b:%s", nullString));
 
         memoryM()->PopContext(); // Restore memory to initialization state
         memoryM()->PushContext();
