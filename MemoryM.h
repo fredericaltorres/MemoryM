@@ -23,7 +23,6 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 
 #endif
 
-#define MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE 1024
 #define MEMORYM_MAX_REPORT_SIZE 1024
 #define MEMORYM_TRUE "true"
 #define MEMORYM_FALSE "false"
@@ -73,6 +72,8 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         
         // Allocate a new DateTime set to now
         struct tm *(*NewDate)();
+        // Allocate a new DateTime set to now
+        struct tm *(*ReNewDate)(struct tm * previousAllocation);
         // Allocate a new DateTime set to a specific date
         struct tm *(*NewDateTime)(int year, int month, int day, int hour, int minutes, int seconds);
 

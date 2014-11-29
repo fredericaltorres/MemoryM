@@ -204,8 +204,8 @@ bool __free(void* data) {
 /// Formating padding is not implemented yet.
 char * __format(char *format, ...) {
 
-    char * formated = (char*)__newAllocOnly(MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE + 1);
-    char tmpBuf[(MEMORYM_MAX_FORMATED_TEMP_STRING_SIZE / 2)+1];
+    char * formated = __newStringLen(0);
+    char tmpBuf[16]; // temp buffer to format number
     va_list argptr;
     va_start(argptr, format);
 
@@ -214,34 +214,41 @@ char * __format(char *format, ...) {
         if (*format == '%') {
             format++;
             if (*format == '%') { // string
-                strcat(formated, "%");
+                formated = __concatString("%", formated);
             }
             else if (*format == 's') { // string
-                char* s = va_arg(argptr, char *); strcat(formated, s);
+                char* s = va_arg(argptr, char *); 
+                formated = __concatString(s, formated);
             }
             else if (*format == 'c') { // character
                 char c = (char)va_arg(argptr, int);
-                snprintf(tmpBuf, sizeof(tmpBuf), "%c", c); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%c", c);
+                formated = __concatString(tmpBuf, formated);
             }
             else if (*format == 'd') { // integer
                 int d = va_arg(argptr, int);
-                snprintf(tmpBuf, sizeof(tmpBuf), "%d", d); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%d", d); 
+                formated = __concatString(tmpBuf, formated);
             }
             else if (*format == 'u') { // un signed integer
                 unsigned int ui = va_arg(argptr, unsigned int);
-                snprintf(tmpBuf, sizeof(tmpBuf), "%u", ui); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%u", ui); 
+                formated = __concatString(tmpBuf, formated);
             }
             else if (*format == 'x') { // un signed integer hexa
                 unsigned int ui = va_arg(argptr, unsigned int);
-                snprintf(tmpBuf, sizeof(tmpBuf), "%x", ui); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%x", ui); 
+                formated = __concatString(tmpBuf, formated);
             }
             else if (*format == 'X') { // un signed integer hexa uppercase
                 unsigned int ui = va_arg(argptr, unsigned int);
-                snprintf(tmpBuf, sizeof(tmpBuf), "%X", ui); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%X", ui);
+                formated = __concatString(tmpBuf, formated);
             }
             else if (*format == 'f') { // float
                 double d = va_arg(argptr, double);
-                snprintf(tmpBuf, sizeof(tmpBuf), "%f", d); strcat(formated, tmpBuf);
+                snprintf(tmpBuf, sizeof(tmpBuf), "%f", d); 
+                formated = __concatString(tmpBuf, formated);
             }
             else if (*format == 'b') { // boolean not standard
                 
@@ -251,21 +258,18 @@ char * __format(char *format, ...) {
                     strcpy(tmpBuf, MEMORYM_TRUE);
                 else
                     strcpy(tmpBuf, MEMORYM_FALSE);
-                strcat(formated, tmpBuf);
+                formated = __concatString(tmpBuf, formated);
             }
         }
         else {
             char c = format[0];
             snprintf(tmpBuf, sizeof(tmpBuf), "%c", c);
-            strcat(formated, tmpBuf);
+            formated = __concatString(tmpBuf, formated);
         }
         format++;
     }
     va_end(argptr);
-    // Allocate a new string for the exact size of the formated result
-    char* r = __newString(formated);
-    free(formated);
-    return r;
+    return formated;
 }
 int __freeMultiple(int n, ...) {
     int error = 0;
@@ -297,20 +301,19 @@ char * __getReport() {
     int buffer2Len = 25 + 2;
     char* tbuffer  = (char*)__newAllocOnly(buffer2Len + 1); // Temp buffer for the allocation
     int   count    = __getCount();
-    char* buffer   = __newStringLen((buffer2Len*count) + footerSize); // pre compute the size of the report
+    char* buffer   = __newStringLen(0); // pre compute the size of the report
 
     for (int i = 0; i <= count; i++) {
 
         MemoryAllocation * ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
         snprintf(tbuffer, buffer2Len, "[%3d] %5d - %X\r\n", i, ma->size, (unsigned int)ma->data);
-        strcat(buffer, tbuffer);
+        buffer = __concatString(tbuffer, buffer);
     }
     // Remark: Format the footer in the tBuffer which has to be extended to 25 to be able to format the 
     // the footer causing waste of memory when we format each entry above. We allocate a specific
     // buffer just to format the footer
     snprintf(tbuffer, buffer2Len, "Used:%5d, Count:%5d\r\n", memoryM()->GetMemoryUsed(), count);
-
-    strcat(buffer, tbuffer);
+    buffer = __concatString(tbuffer, buffer);
     free(tbuffer); // Free temp buffer
     return buffer;
 }
@@ -379,7 +382,28 @@ struct tm * __newDate() {
     memcpy(tick_time2, tick_time, sizeof(struct tm));
     return tick_time2;
 }
-
+struct tm * __reNewDate(struct tm * previousAllocation) {
+    if (previousAllocation == NULL) {
+        return __newDate();
+    }
+    else {
+        MemoryAllocation * ma = __getMemoryAllocation(previousAllocation);
+        if (ma == NULL) {
+            return NULL;
+        }
+        else {
+            MemoryAllocation_FreeAllocation(ma);
+            int size               = sizeof(struct tm);
+            struct tm * tick_time2 = (struct tm *)__newAllocOnly(size);
+            time_t temp            = time(NULL);  // Get a tm structure -- not re entrant
+            struct tm * tick_time  = localtime(&temp);
+            memcpy(tick_time2, tick_time, size);
+            ma->size               = size;
+            ma->data               = tick_time2;
+            return tick_time2;
+        }
+    }
+}
 struct tm * __newDateTime(int year, int month, int day, int hour, int minutes, int seconds) {
 
     struct tm * d = __newDate();
@@ -397,16 +421,13 @@ struct tm * __newDateTime(int year, int month, int day, int hour, int minutes, i
 
     return d;
 }
-
-
-
 char* __formatDateTime(struct tm *date, char* format) {
 
     strftime(__MemoryM__InternalBuffer, sizeof(__MemoryM__InternalBuffer), format, date);
     return __newString(__MemoryM__InternalBuffer);
 }
-
 char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocation) {
+
     if (previousAllocation == NULL) {
         return __formatDateTime(date, format);
     }
@@ -418,14 +439,13 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         else {
             MemoryAllocation_FreeAllocation(ma);
             strftime(__MemoryM__InternalBuffer, sizeof(__MemoryM__InternalBuffer), format, date);
-            int size = strlen(__MemoryM__InternalBuffer);
+            int size    = strlen(__MemoryM__InternalBuffer);
             char * newS = (char*)__newAllocOnly(size + 1);
             strcpy(newS, __MemoryM__InternalBuffer);
             ma->size    = size + 1;
             ma->data    = newS;
             return newS;
         }
-
     }
 }
 #if !defined(WINFORMEBBLE)
@@ -540,8 +560,6 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         assert(1 == memoryM()->FreeMultiple(1, 4354543));
         assert(00 == memoryM()->GetMemoryUsed());
 
-        
-
         return true;
     }
 
@@ -553,7 +571,21 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
 
         int tmLen = sizeof(struct tm);
         struct tm * now = memoryM()->NewDate();
+        assert(sizeof(struct tm) == memoryM()->GetMemoryUsed());
 
+        struct tm * now2 = memoryM()->ReNewDate(NULL);
+        assert(sizeof(struct tm)*2 == memoryM()->GetMemoryUsed());
+
+        now2 = memoryM()->ReNewDate(now2);
+        assert(sizeof(struct tm) * 2 == memoryM()->GetMemoryUsed());
+        
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+
+        now = memoryM()->NewDate();
+        assert(sizeof(struct tm) == memoryM()->GetMemoryUsed());
+
+        // There may be are some difference between Windows And Linux
         struct tm * codeCamp22Date = memoryM()->NewDateTime(2014, 11, 22, 1, 2, 3);
         assertDate(codeCamp22Date, 2014, 11, 22, 1, 2, 3);
         
@@ -561,12 +593,12 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         assert(tmLen *2 == memoryM()->GetMemoryUsed());
 
         char * f1 = NULL;
-        f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%a - %b %d", f1);
-        assertString("Thu - Nov 22", f1);
-
         f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%Y-%m-%d", f1);
         assertString("2014-11-22", f1);
 
+        f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%a - %b %d", f1);
+        assertString("Fri - Nov 22", f1);
+              
         f1 = memoryM()->ReFormatDateTime(codeCamp22Date, "%X", f1);
         assertString("01:02:03", f1);
 
@@ -709,6 +741,8 @@ MemoryManager * memoryM() {
         __localMemoryM.FreeMultiple     = __freeMultiple;
 
         __localMemoryM.NewDate          = __newDate;
+        __localMemoryM.ReNewDate        = __reNewDate;
+        
         __localMemoryM.NewDateTime      = __newDateTime;
         __localMemoryM.FormatDateTime   = __formatDateTime;
         __localMemoryM.ReFormatDateTime = __reFormatDateTime;
@@ -732,3 +766,6 @@ http://api.thingspeak.com/channels/19324/feed.json?key=N7RV4GSNJWDTTNT6
 http://api.openweathermap.org/data/2.5/weather?lat=42.414747044171925&lon=-71.50293471631109
 
 */
+
+
+
