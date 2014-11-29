@@ -71,9 +71,16 @@ void MemoryAllocation_FreeAllocation(MemoryAllocation *a) {
         a->data = NULL;
     }
 }
+
+MemoryAllocation* __getFirstFreeMemoryAllocation();
+
 void MemoryAllocation_Push(DArray *array, int size, void *data) {
 
-    MemoryAllocation* ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
+    MemoryAllocation* ma  = __getFirstFreeMemoryAllocation();
+
+    if (ma == NULL) {
+        ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
+    }
     ma->data             = data;
     ma->size             = size;
     MemoryAllocation_PushA(array, ma);
@@ -91,6 +98,18 @@ static char __MemoryM__InternalBuffer[32];
 int __getCount() {
 
     return MemoryAllocation_GetLength(__localMemoryM._memoryAllocation);
+}
+MemoryAllocation* __getFirstFreeMemoryAllocation() {
+
+    int count = __getCount();
+    for (int i = 0; i <= count; i++) {
+
+        MemoryAllocation * ma = MemoryAllocation_Get(__localMemoryM._memoryAllocation, i);
+        if (ma->data == NULL) {
+            return ma;
+        }
+    }
+    return NULL;
 }
 MemoryAllocation* __getMemoryAllocation(void* data) {
 

@@ -72,7 +72,7 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
         
         // Allocate a new DateTime set to now
         struct tm *(*NewDate)();
-        // Allocate a new DateTime set to now
+        // Re compute now and re allocate a new date , but re use the internal MemoryAllocation object
         struct tm *(*ReNewDate)(struct tm * previousAllocation);
         // Allocate a new DateTime set to a specific date
         struct tm *(*NewDateTime)(int year, int month, int day, int hour, int minutes, int seconds);
