@@ -72,18 +72,27 @@ void MemoryAllocation_FreeAllocation(MemoryAllocation *a) {
     }
 }
 
+MemoryAllocation * MemoryAllocation_NewInstance() {
+
+    return (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
+}
+
 MemoryAllocation* __getFirstFreeMemoryAllocation();
 
 void MemoryAllocation_Push(DArray *array, int size, void *data) {
 
-    MemoryAllocation* ma  = __getFirstFreeMemoryAllocation();
+    MemoryAllocation* ma = __getFirstFreeMemoryAllocation();
 
-    if (ma == NULL) {
-        ma = (MemoryAllocation*)malloc(sizeof(MemoryAllocation));
+    if (ma == NULL) { // We need a new allocation
+        ma       = MemoryAllocation_NewInstance();
+        ma->data = data;
+        ma->size = size;
+        MemoryAllocation_PushA(array, ma);
     }
-    ma->data             = data;
-    ma->size             = size;
-    MemoryAllocation_PushA(array, ma);
+    else {
+        ma->data = data;
+        ma->size = size;
+    }
 }
 
 // *** Single instance allocated *** 
@@ -741,6 +750,23 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         return true;
     }
 
+    bool __UnitTests_Issue1() {
+
+        memoryM()->PopContext(); // Restore memory to initialization state
+        memoryM()->PushContext();
+
+        time_t temp = time(NULL);  // Get a tm structure -- not re entrant
+        struct tm * tick_time = localtime(&temp);
+
+        for(int i = 0; i < 32; i++) {
+
+            char * timeBuffer = memoryM()->FormatDateTime(tick_time, "%H:%M:%S");
+            memoryM()->Free(timeBuffer);
+            printf("--  memoryM:[%d/%d]", memoryM()->GetCount(), memoryM()->GetMemoryUsed());
+        }
+        return true;
+    }
+
     //////////////////////////////////////////////////////////////////
     /// __UnitTests
     bool __UnitTests() {
@@ -750,6 +776,7 @@ char* __reFormatDateTime(struct tm *date, char* format, char * previousAllocatio
         __UnitTests_PushPopContext();
         __UnitTests_StringFormat();
         __UnitTests_BasicDate();
+        __UnitTests_Issue1();
         return true;
     }
 
