@@ -53,7 +53,10 @@ WinFormebble (https://github.com/fredericaltorres/WinFormebble)
 
     typedef struct {
 
+        // _memoryAllocation is a Darray (DynamicArray), though we never remove
+        // a created entry, but we re use entry available.
         DArray*	_memoryAllocation;
+
         int _contextStack[MEMORYM_STACK_CONTEXT_SIZE];
         int _contextStackIndex;
 
